@@ -1,0 +1,17 @@
+# Fixed requirements for Python 3.14 compatibility
+# Install NumPy 1.x first, then other packages
+
+numpy==1.26.4
+opencv-python-headless
+ultralytics
+albumentations
+pyyaml
+flask
+flask-cors
+requests
+tqdm
+pandas
+torch
+torchvision
+torchaudio
+

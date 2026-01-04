@@ -1,0 +1,52 @@
+.status-panel {
+  background: #1e1e1e;
+  padding: 20px;
+  border-radius: 10px;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+.status-panel h2 {
+  color: #4CAF50;
+  margin: 0 0 15px 0;
+  font-size: 1.5rem;
+}
+
+.status-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.status-badge.active {
+  background: #4CAF50;
+  color: white;
+  box-shadow: 0 2px 8px rgba(76, 175, 80, 0.4);
+}
+
+.status-badge.inactive {
+  background: #757575;
+  color: white;
+}
+
+@media (max-width: 768px) {
+  .status-items {
+    flex-direction: column;
+  }
+  
+  .status-badge {
+    width: 100%;
+    text-align: center;
+  }
+}
+
+

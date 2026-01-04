@@ -1,0 +1,150 @@
+.control-panel {
+  background: #1e1e1e;
+  padding: 25px;
+  border-radius: 10px;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+.control-panel h2 {
+  color: #f44336;
+  margin: 0 0 20px 0;
+  font-size: 1.5rem;
+}
+
+.control-content {
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+}
+
+.confidence-control {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.confidence-control label {
+  font-size: 1.1rem;
+  color: #f1f1f1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.confidence-value {
+  color: #4CAF50;
+  font-weight: bold;
+  font-size: 1.2rem;
+  background: rgba(76, 175, 80, 0.2);
+  padding: 4px 12px;
+  border-radius: 5px;
+}
+
+.slider {
+  width: 100%;
+  height: 8px;
+  border-radius: 5px;
+  background: #333;
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #f44336;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s ease;
+}
+
+.slider::-webkit-slider-thumb:hover {
+  background: #d32f2f;
+  transform: scale(1.1);
+}
+
+.slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #f44336;
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s ease;
+}
+
+.slider::-moz-range-thumb:hover {
+  background: #d32f2f;
+  transform: scale(1.1);
+}
+
+.slider-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  color: #888;
+  padding: 0 5px;
+}
+
+.button-group {
+  display: flex;
+  justify-content: center;
+}
+
+.btn {
+  padding: 12px 30px;
+  font-size: 1.1rem;
+  font-weight: bold;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+.btn-start {
+  background: #4CAF50;
+  color: white;
+}
+
+.btn-start:hover {
+  background: #45a049;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 8px rgba(0, 0, 0, 0.4);
+}
+
+.btn-stop {
+  background: #f44336;
+  color: white;
+}
+
+.btn-stop:hover {
+  background: #d32f2f;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 8px rgba(0, 0, 0, 0.4);
+}
+
+.btn:active {
+  transform: translateY(0);
+}
+
+@media (max-width: 768px) {
+  .control-content {
+    gap: 20px;
+  }
+  
+  .btn {
+    width: 100%;
+    padding: 15px;
+  }
+}
+
+

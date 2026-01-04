@@ -1,0 +1,262 @@
+.camera-card {
+  background: rgba(30, 41, 59, 0.6);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(59, 130, 246, 0.15);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+  position: relative;
+}
+
+.camera-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.5);
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+/* Live Badge - Top Right with pulsing red animation */
+.live-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  background: rgba(15, 23, 42, 0.8);
+  backdrop-filter: blur(10px);
+  border-radius: 20px;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  z-index: 20;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.live-dot-pulse {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent-red);
+  animation: livePulse 1.5s infinite;
+}
+
+@keyframes livePulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.2);
+    box-shadow: 0 0 0 8px rgba(239, 68, 68, 0);
+  }
+}
+
+.live-text {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent-red);
+  letter-spacing: 1.5px;
+  font-family: 'Inter', sans-serif;
+  text-transform: uppercase;
+}
+
+.camera-feed {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16/9;
+  background: #000;
+  overflow: hidden;
+}
+
+.feed-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.feed-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--text-muted);
+  padding: 40px;
+  text-align: center;
+}
+
+.error-icon {
+  font-size: 48px;
+  margin-bottom: 15px;
+  opacity: 0.5;
+}
+
+.error-hint {
+  font-size: 12px;
+  margin-top: 10px;
+  opacity: 0.7;
+}
+
+/* Severity Alert Area - Glows red only when accident detected */
+.severity-alert-area {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  backdrop-filter: blur(10px);
+  z-index: 15;
+  animation: alertPulse 2s infinite;
+}
+
+@keyframes alertPulse {
+  0%, 100% {
+    opacity: 0.95;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.alert-icon {
+  font-size: 20px;
+}
+
+.alert-text {
+  flex: 1;
+  margin-left: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  color: white;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-family: 'Inter', sans-serif;
+}
+
+.alert-confidence {
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(0, 0, 0, 0.3);
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-family: 'Inter', sans-serif;
+}
+
+/* Timestamp Overlay - Top Left */
+.timestamp-overlay {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  z-index: 10;
+  background: rgba(15, 23, 42, 0.7);
+  backdrop-filter: blur(8px);
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.timestamp-text {
+  font-size: 11px;
+  color: var(--text-primary);
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Status Icons - WiFi and Battery (like evizz) */
+.status-icons {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  z-index: 11;
+  margin-top: 50px;
+}
+
+.status-icon {
+  font-size: 14px;
+  background: rgba(15, 23, 42, 0.7);
+  backdrop-filter: blur(8px);
+  padding: 4px 6px;
+  border-radius: 4px;
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+/* Camera Identifier - Bottom Left (CAM-01 - North Entrance) */
+.camera-identifier {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: rgba(15, 23, 42, 0.8);
+  backdrop-filter: blur(10px);
+  border-radius: 20px;
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  z-index: 10;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.camera-id {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--accent-blue);
+  letter-spacing: 1px;
+  font-family: 'Inter', sans-serif;
+}
+
+.camera-separator {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.camera-name {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-weight: 500;
+  font-family: 'Inter', sans-serif;
+}
+
+@media (max-width: 768px) {
+  .live-badge {
+    top: 8px;
+    right: 8px;
+    padding: 5px 12px;
+  }
+  
+  .camera-identifier {
+    bottom: 8px;
+    left: 8px;
+    padding: 6px 12px;
+  }
+  
+  .severity-alert-area {
+    padding: 10px 15px;
+  }
+  
+  .timestamp-overlay {
+    top: 8px;
+    left: 8px;
+    padding: 6px 10px;
+  }
+  
+  .status-icons {
+    top: 8px;
+    left: 8px;
+    margin-top: 45px;
+  }
+}

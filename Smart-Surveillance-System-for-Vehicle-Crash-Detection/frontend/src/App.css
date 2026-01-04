@@ -1,0 +1,124 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  /* Midnight Theme Colors - Matching evizz.com */
+  --bg-primary: #0f172a;
+  --bg-secondary: #1e293b;
+  --bg-tertiary: #334155;
+  --bg-glass: rgba(30, 41, 59, 0.6);
+  --bg-card: rgba(30, 41, 59, 0.4);
+  
+  /* Accent Colors */
+  --accent-blue: #3b82f6;
+  --accent-blue-hover: #2563eb;
+  --accent-red: #ef4444;
+  --accent-red-hover: #dc2626;
+  --accent-green: #10b981;
+  
+  /* Text Colors */
+  --text-primary: #f1f5f9;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+  
+  /* Status Colors */
+  --status-healthy: #10b981;
+  --status-warning: #f59e0b;
+  --status-danger: #ef4444;
+  
+  /* Severity Colors */
+  --severity-severe: #ef4444;
+  --severity-moderate: #f59e0b;
+  --severity-mild: #eab308;
+  --severity-monitoring: #6b7280;
+  
+  /* Spacing */
+  --sidebar-width: 80px;
+  --header-height: 70px;
+  --footer-height: 40px;
+  --activity-feed-width: 320px;
+  
+  /* Effects */
+  --glass-blur: blur(12px);
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.5);
+}
+
+body {
+  font-family: 'Inter', 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  overflow-x: hidden;
+}
+
+.app-container {
+  display: grid;
+  grid-template-columns: var(--sidebar-width) 1fr;
+  height: 100vh;
+  overflow: hidden;
+  background: var(--bg-primary);
+}
+
+.main-content {
+  display: grid;
+  grid-template-rows: var(--header-height) 1fr var(--footer-height);
+  background: var(--bg-primary);
+  overflow: hidden;
+}
+
+.content-wrapper {
+  display: grid;
+  grid-template-columns: 1fr var(--activity-feed-width);
+  overflow: hidden;
+  background: var(--bg-primary);
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--bg-tertiary);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
+/* Responsive Design */
+@media (max-width: 1400px) {
+  :root {
+    --activity-feed-width: 280px;
+  }
+}
+
+@media (max-width: 1024px) {
+  .content-wrapper {
+    grid-template-columns: 1fr;
+  }
+  
+  :root {
+    --activity-feed-width: 0px;
+  }
+}
+
+@media (max-width: 768px) {
+  .app-container {
+    grid-template-columns: 1fr;
+  }
+  
+  :root {
+    --sidebar-width: 0px;
+  }
+}

@@ -1,0 +1,13 @@
+flask
+flask-cors
+ultralytics
+opencv-python-headless
+pandas
+torch
+torchvision
+torchaudio
+requests
+numpy
+albumentations
+pyyaml
+tqdm
