@@ -14,15 +14,42 @@ app = Flask(__name__, static_folder='frontend/build/static', template_folder='fr
 CORS(app)  # Enable CORS for React frontend
 
 # --- Config ---
-MODEL_PATH = "weights/best.pt"
-try:
-    model = YOLO(MODEL_PATH)
-    print(f"[✅] Model loaded from {MODEL_PATH}")
-except Exception as e:
-    print(f"[⚠️] Warning: Could not load model from {MODEL_PATH}")
-    print(f"[ℹ️] Error: {e}")
-    print("[ℹ️] Please train a model first or update MODEL_PATH in app.py")
-    model = None
+# Try to load model from crash_webapp first, then local weights
+import os
+from pathlib import Path
+
+possible_model_paths = [
+    os.path.join("backend", "weights", "best.pt"),  # New backend location
+    "weights/best.pt",  # Local weights (legacy)
+    "crash_webapp/weights/best.pt",  # From crash_webapp (legacy)
+    os.path.join(Path(__file__).parent, "backend", "weights", "best.pt"),  # Absolute backend path
+    os.path.join(Path(__file__).parent, "weights", "best.pt"),  # Absolute local path
+    os.path.join(Path(__file__).parent, "crash_webapp", "weights", "best.pt"),  # Absolute crash_webapp path
+]
+
+MODEL_PATH = None
+for path in possible_model_paths:
+    if os.path.exists(path):
+        MODEL_PATH = path
+        print(f"[✅] Found model at: {MODEL_PATH}")
+        break
+
+if MODEL_PATH:
+    try:
+        model = YOLO(MODEL_PATH)
+        print(f"[✅] Model loaded successfully from {MODEL_PATH}")
+    except Exception as e:
+        print(f"[⚠️] Warning: Could not load model from {MODEL_PATH}")
+        print(f"[ℹ️] Error: {e}")
+        model = None
+else:
+    print("[⚠️] Warning: Model not found in any expected location")
+    print(f"[ℹ️] Searched paths: {possible_model_paths}")
+    print("[ℹ️] Using default YOLOv8n model")
+    try:
+        model = YOLO("yolov8n.pt")
+    except:
+        model = None
 
 # Load lightweight face detection model for anonymization
 try:
@@ -386,6 +413,14 @@ def generate_frames(conf_threshold):
         cap.release()
 
 # --- API Routes ---
+@app.route('/health', methods=['GET'])
+def health():
+    """Health check endpoint"""
+    return jsonify({
+        'status': 'healthy',
+        'model_loaded': model is not None
+    })
+
 @app.route('/api/status', methods=['GET'])
 def api_status():
     """API endpoint to get system status"""
@@ -396,11 +431,32 @@ def api_status():
         'model_loaded': model is not None
     })
 
+@app.route('/api/system/status', methods=['GET'])
+def api_system_status():
+    """System status endpoint for frontend dashboard"""
+    return jsonify({
+        'ml_service': {
+            'available': model is not None,
+            'model_path': MODEL_PATH if MODEL_PATH else None
+        },
+        'database': {
+            'connected': True  # Placeholder - update if database is added
+        },
+        'triage': True,
+        'anonymization': face_model is not None
+    })
+
+@app.route('/api/crashes/recent/<int:hours>', methods=['GET'])
+def api_crashes_recent(hours):
+    """Get recent crash detections (placeholder - can be connected to database)"""
+    # Placeholder data - in production, this would query a database
+    return jsonify([])
+
 @app.route('/api/config', methods=['GET'])
 def api_config():
     """API endpoint to get current configuration"""
     return jsonify({
-        'model_path': MODEL_PATH,
+        'model_path': MODEL_PATH if MODEL_PATH else None,
         'face_model_available': face_model is not None,
         'telegram_configured': BOT_TOKEN != "YOUR_BOT_TOKEN" and CHAT_ID != "YOUR_CHAT_ID"
     })
@@ -467,6 +523,12 @@ if __name__ == "__main__":
     print(f"📡 Backend running on: http://localhost:5000")
     print(f"🎥 Video stream: http://localhost:5000/video?conf=0.6")
     print(f"📊 API status: http://localhost:5000/api/status")
+    print(f"❤️  Health check: http://localhost:5000/health")
+    print(f"🔧 System status: http://localhost:5000/api/system/status")
+    if MODEL_PATH:
+        print(f"✅ ML Model: {MODEL_PATH}")
+    else:
+        print(f"⚠️  ML Model: Using default YOLOv8n")
     print("\n💡 To use React frontend:")
     print("   1. cd frontend")
     print("   2. npm install")

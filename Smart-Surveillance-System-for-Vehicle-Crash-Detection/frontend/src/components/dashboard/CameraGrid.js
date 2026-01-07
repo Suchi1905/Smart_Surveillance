@@ -3,7 +3,7 @@ import './CameraGrid.css';
 import CameraCard from './CameraCard';
 
 const CameraGrid = ({ selectedLocation, onLocationChange, emergencyMode, apiUrl }) => {
-  const [cameras, setCameras] = useState({
+  const [cameras] = useState({
     'All': [
       { id: 'CAM-01', name: 'Main Entrance', location: 'Basement', confidence: 0.6 },
       { id: 'CAM-02', name: 'Highway North', location: 'Backyard', confidence: 0.6 },
@@ -48,10 +48,9 @@ const CameraGrid = ({ selectedLocation, onLocationChange, emergencyMode, apiUrl 
     }, 5000);
 
     return () => clearInterval(interval);
-  }, [cameras, selectedLocation]);
+  }, [selectedLocation]);
 
   const locations = ['All', 'Basement', 'Backyard', 'Front Door', 'Kitchen'];
-  const currentCameras = cameras[selectedLocation] || [];
 
   return (
     <main className="camera-grid-container">

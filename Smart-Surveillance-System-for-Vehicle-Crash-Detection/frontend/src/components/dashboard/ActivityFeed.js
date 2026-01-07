@@ -13,13 +13,20 @@ const ActivityFeed = ({ events }) => {
   }
 
   const formatTime = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: true
-    });
+    if (!dateString) return 'N/A';
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return 'N/A';
+      return date.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true
+      });
+    } catch (error) {
+      console.error('Error formatting time:', error);
+      return 'N/A';
+    }
   };
 
   const formatDateLabel = (date) => {
@@ -72,27 +79,36 @@ const ActivityFeed = ({ events }) => {
       </div>
 
       <div className="events-list">
-        {events.length === 0 ? (
+        {!events || events.length === 0 ? (
           <div className="no-events">
             <p>No events recorded</p>
             <p className="hint">Events will appear here when detected</p>
           </div>
         ) : (
-          events.map((event, index) => (
-            <div key={event.id || index} className="event-item">
-              <div className="event-dot"></div>
-              <div className="event-thumbnail">
-                <div className="thumbnail-placeholder">
-                  <span className="thumbnail-icon">{getEventTypeIcon(event.severity)}</span>
+          events.filter(event => event != null).map((event, index) => {
+            // Safely handle event properties
+            const eventSeverity = event?.severity || 'Monitoring';
+            const eventLocation = event?.location;
+            const eventTime = event?.created_at || event?.timestamp || new Date().toISOString();
+            
+            return (
+              <div key={event?.id || `event-${index}`} className="event-item">
+                <div className="event-dot"></div>
+                <div className="event-thumbnail">
+                  <div className="thumbnail-placeholder">
+                    <span className="thumbnail-icon">{getEventTypeIcon(eventSeverity)}</span>
+                  </div>
+                </div>
+                <div className="event-details">
+                  <div className="event-camera">
+                    {typeof eventLocation === 'object' ? (eventLocation?.name || 'Camera') : (eventLocation || 'Camera')}
+                  </div>
+                  <div className="event-type">{getEventTypeLabel(eventSeverity)}</div>
+                  <div className="event-time">{formatTime(eventTime)}</div>
                 </div>
               </div>
-              <div className="event-details">
-                <div className="event-camera">{event.location?.name || 'Camera'}</div>
-                <div className="event-type">{getEventTypeLabel(event.severity)}</div>
-                <div className="event-time">{formatTime(event.created_at)}</div>
-              </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
     </aside>

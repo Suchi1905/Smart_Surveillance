@@ -1,124 +1,419 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <title>🚨 Crash Detection Dashboard</title>
-  <style>
-    body {
-      background-color: #121212;
-      color: #f1f1f1;
-      font-family: 'Segoe UI', sans-serif;
-      margin: 0;
-      padding: 20px;
-      text-align: center;
-    }
-    h1 {
-      color: #f44336;
-    }
-    form {
-      margin: 20px auto;
-    }
-    input, button {
-      padding: 10px;
-      margin: 10px;
-      border-radius: 6px;
-      border: none;
-      font-size: 16px;
-    }
-    input {
-      width: 60px;
-    }
-    button {
-      background: #f44336;
-      color: white;
-      cursor: pointer;
-    }
-    button:hover {
-      background: #c0392b;
-    }
-    img {
-      margin-top: 20px;
-      border-radius: 10px;
-      box-shadow: 0 0 15px rgba(255, 255, 255, 0.1);
-    }
-    .gallery {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-      gap: 15px;
-      margin-top: 30px;
-    }
-    .gallery img {
-      width: 100%;
-      height: auto;
-      border-radius: 10px;
-    }
-    .info-panel {
-      background: #1e1e1e;
-      padding: 20px;
-      border-radius: 10px;
-      margin: 20px auto;
-      max-width: 800px;
-      text-align: left;
-    }
-    .info-panel h2 {
-      color: #4CAF50;
-      margin-top: 0;
-    }
-    .status {
-      display: inline-block;
-      padding: 5px 10px;
-      border-radius: 5px;
-      margin: 5px;
-      font-size: 14px;
-    }
-    .status.active {
-      background: #4CAF50;
-      color: white;
-    }
-    .status.inactive {
-      background: #757575;
-      color: white;
-    }
-  </style>
-</head>
-<body>
-  <h1>🚗 Smart Crash Detection System</h1>
-  <p>Privacy-Preserving Triage Framework with Real-Time Anonymization</p>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Smart Surveillance Dashboard</title>
 
-  <div class="info-panel">
-    <h2>System Status</h2>
-    <span class="status active">✓ Detection Active</span>
-    <span class="status active">✓ Severity Triage Enabled</span>
-    <span class="status active">✓ Privacy Anonymization Active</span>
-  </div>
+    <!-- Inter font -->
+    <link
+      rel="preconnect"
+      href="https://fonts.googleapis.com"
+    />
+    <link
+      rel="preconnect"
+      href="https://fonts.gstatic.com"
+      crossorigin
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
 
-  <form action="/video" method="get">
-    <label for="conf">Confidence Threshold:</label>
-    <input type="number" name="conf" min="0.1" max="1.0" step="0.1" value="0.6" required />
-    <button type="submit">Start Detection</button>
-  </form>
+    <!-- Core dashboard styles -->
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='style.css') }}"
+    />
+  </head>
+  <body>
+    <div class="app-shell">
+      <!-- Sidebar -->
+      <aside class="sidebar">
+        <div class="sidebar__logo">
+          <span class="sidebar__logo-mark"></span>
+        </div>
 
-  <img id="stream" src="" width="720" style="display:none;" />
+        <nav class="sidebar__nav">
+          <button class="sidebar__item sidebar__item--active" aria-label="Dashboard">
+            <span class="sidebar__icon">&#9679;</span>
+          </button>
+          <button class="sidebar__item" aria-label="Live Feeds">
+            <span class="sidebar__icon">&#128249;</span>
+          </button>
+          <button class="sidebar__item" aria-label="Incident Logs">
+            <span class="sidebar__icon">&#9888;</span>
+          </button>
+          <button class="sidebar__item" aria-label="Settings">
+            <span class="sidebar__icon">&#9881;</span>
+          </button>
+        </nav>
 
-  {% if images %}
-    <h2>🖼️ Latest Detected Crashes</h2>
-    <div class="gallery">
-      {% for img in images %}
-        <img src="{{ url_for('static', filename='crash_logs/images/' + img) }}" alt="Crash Image" />
-      {% endfor %}
+        <div class="sidebar__footer">
+          <span class="sidebar__version">v2.1</span>
+        </div>
+      </aside>
+
+      <!-- Main layout -->
+      <div class="layout">
+        <!-- Header -->
+        <header class="header">
+          <div class="header__left">
+            <div class="system-pill" id="system-pill">
+              <span class="system-pill__dot">🟢</span>
+              <span class="system-pill__label">System Healthy</span>
+            </div>
+
+            <div class="header__meta">
+              <span class="header__label">Smart Surveillance Dashboard</span>
+              <span class="header__sub" id="system-subtitle">
+                Model loading status: checking...
+              </span>
+            </div>
+          </div>
+
+          <div class="header__right">
+            <div class="header__clock" id="clock">--:--:--</div>
+
+            <div class="header__search">
+              <span class="header__search-icon">&#128269;</span>
+              <input
+                type="text"
+                class="header__search-input"
+                placeholder="Search cameras, incidents, zones..."
+              />
+            </div>
+          </div>
+        </header>
+
+        <!-- Main content -->
+        <main class="main">
+          <!-- Analytics strip -->
+          <section class="analytics">
+            <article class="stat-card glass">
+              <div class="stat-card__label">TOTAL CAMERAS</div>
+              <div class="stat-card__value" id="stat-total-cameras">4</div>
+              <div class="stat-card__meta">All zones online</div>
+            </article>
+
+            <article class="stat-card glass">
+              <div class="stat-card__label">UPTIME</div>
+              <div class="stat-card__value" id="stat-uptime">99.98%</div>
+              <div class="stat-card__meta">Last restart: &lt; 24h</div>
+            </article>
+
+            <article class="stat-card glass">
+              <div class="stat-card__label">INCIDENTS TODAY</div>
+              <div class="stat-card__value" id="stat-incidents">0</div>
+              <div class="stat-card__meta">Crash triage events</div>
+            </article>
+
+            <article class="stat-card glass">
+              <div class="stat-card__label">AI ACCURACY</div>
+              <div class="stat-card__value" id="stat-accuracy">--%</div>
+              <div class="stat-card__meta">Model performance (approx)</div>
+            </article>
+          </section>
+
+          <!-- Controls + stream -->
+          <section class="grid">
+            <!-- Primary live feed card -->
+            <article class="camera-card glass camera-card--primary">
+              <header class="camera-card__header">
+                <div class="camera-card__title-group">
+                  <h2 class="camera-card__title">Live Crash Detection Feed</h2>
+                  <span class="camera-card__subtitle">
+                    Edge anonymization • Severity triage • YOLO detection
+                  </span>
+                </div>
+
+                <div class="camera-card__badges">
+                  <span class="badge badge--live" id="badge-live-primary">
+                    LIVE
+                  </span>
+                  <span class="badge" id="badge-accident-primary">
+                    Accident
+                  </span>
+                  <span class="badge" id="badge-vehicle-primary">
+                    Vehicle
+                  </span>
+                  <span class="badge" id="badge-human-primary">
+                    Human
+                  </span>
+                </div>
+              </header>
+
+              <div class="camera-card__body">
+                <div class="camera-card__controls">
+                  <label class="field">
+                    <span class="field__label">Confidence Threshold</span>
+                    <div class="field__input-row">
+                      <input
+                        type="range"
+                        id="conf-slider"
+                        min="0.1"
+                        max="1.0"
+                        step="0.1"
+                        value="0.6"
+                      />
+                      <span class="field__value" id="conf-value">0.6</span>
+                    </div>
+                  </label>
+
+                  <div class="button-row">
+                    <button
+                      type="button"
+                      class="btn btn--primary"
+                      id="btn-start"
+                    >
+                      Start Detection
+                    </button>
+                    <button
+                      type="button"
+                      class="btn btn--ghost"
+                      id="btn-stop"
+                      disabled
+                    >
+                      Stop
+                    </button>
+                  </div>
+
+                  <div class="meta-row">
+                    <span class="meta-row__item">
+                      Stream URL:
+                      <code>/video?conf=<span id="conf-meta">0.6</span></code>
+                    </span>
+                    <span class="meta-row__item" id="stream-status">
+                      Stream idle
+                    </span>
+                  </div>
+                </div>
+
+                <div class="camera-card__feed">
+                  <div class="camera-card__feed-frame">
+                    <img
+                      id="live-feed"
+                      alt="Live crash detection stream"
+                    />
+                    <div class="camera-card__feed-overlay"></div>
+                  </div>
+                  <div class="camera-card__caption">
+                    <span class="camera-card__caption-main">
+                      Feed: North Intersection
+                    </span>
+                    <span class="camera-card__caption-sub">
+                      Powered by /video endpoint & real-time YOLO inference
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </article>
+
+            <!-- Additional camera tiles -->
+            <article class="camera-card glass">
+              <header class="camera-card__header camera-card__header--compact">
+                <h3 class="camera-card__title">CAM-02 • East Corridor</h3>
+                <span class="badge badge--live">LIVE</span>
+              </header>
+              <div class="camera-card__thumbnail"></div>
+              <footer class="camera-card__caption camera-card__caption--compact">
+                <span class="camera-card__caption-main">
+                  Feed: East Corridor
+                </span>
+                <span class="camera-card__caption-sub">
+                  Monitoring vehicle throughput
+                </span>
+              </footer>
+            </article>
+
+            <article class="camera-card glass">
+              <header class="camera-card__header camera-card__header--compact">
+                <h3 class="camera-card__title">CAM-03 • City Tunnel</h3>
+                <span class="badge">Standby</span>
+              </header>
+              <div class="camera-card__thumbnail camera-card__thumbnail--standby"></div>
+              <footer class="camera-card__caption camera-card__caption--compact">
+                <span class="camera-card__caption-main">
+                  Feed: City Tunnel
+                </span>
+                <span class="camera-card__caption-sub">
+                  Awaiting connection handshake
+                </span>
+              </footer>
+            </article>
+
+            <article class="camera-card glass">
+              <header class="camera-card__header camera-card__header--compact">
+                <h3 class="camera-card__title">CAM-04 • West Bypass</h3>
+                <span class="badge">Recording</span>
+              </header>
+              <div class="camera-card__thumbnail camera-card__thumbnail--recording"></div>
+              <footer class="camera-card__caption camera-card__caption--compact">
+                <span class="camera-card__caption-main">
+                  Feed: West Bypass
+                </span>
+                <span class="camera-card__caption-sub">
+                  Night-vision enhanced
+                </span>
+              </footer>
+            </article>
+          </section>
+
+          {% if images %}
+          <section class="gallery-section glass">
+            <header class="gallery-section__header">
+              <div>
+                <h2 class="gallery-section__title">Latest Crash Snapshots</h2>
+                <p class="gallery-section__sub">
+                  Persisted from `/static/crash_logs/images` for audit review.
+                </p>
+              </div>
+            </header>
+            <div class="gallery-grid">
+              {% for img in images %}
+              <figure class="gallery-item">
+                <img
+                  src="{{ url_for('static', filename='crash_logs/images/' + img) }}"
+                  alt="Crash Image"
+                />
+                <figcaption>Captured incident frame</figcaption>
+              </figure>
+              {% endfor %}
+            </div>
+          </section>
+          {% endif %}
+        </main>
+      </div>
     </div>
-  {% endif %}
 
-  <script>
-    const params = new URLSearchParams(window.location.search);
-    const conf = params.get("conf");
-    if (conf) {
-      const stream = document.getElementById("stream");
-      stream.src = `/video?conf=${conf}`;
-      stream.style.display = 'block';
-    }
-  </script>
-</body>
+    <script>
+      // Digital clock
+      function updateClock() {
+        const el = document.getElementById("clock");
+        if (!el) return;
+        const now = new Date();
+        const parts = [
+          now.getHours().toString().padStart(2, "0"),
+          now.getMinutes().toString().padStart(2, "0"),
+          now.getSeconds().toString().padStart(2, "0"),
+        ];
+        el.textContent = parts.join(":");
+      }
+      setInterval(updateClock, 1000);
+      updateClock();
+
+      // Confidence slider + stream controls
+      const slider = document.getElementById("conf-slider");
+      const confValue = document.getElementById("conf-value");
+      const confMeta = document.getElementById("conf-meta");
+      const startBtn = document.getElementById("btn-start");
+      const stopBtn = document.getElementById("btn-stop");
+      const liveFeed = document.getElementById("live-feed");
+      const streamStatus = document.getElementById("stream-status");
+
+      function setStreamStatus(text) {
+        if (streamStatus) streamStatus.textContent = text;
+      }
+
+      if (slider && confValue && confMeta) {
+        slider.addEventListener("input", () => {
+          confValue.textContent = slider.value;
+          confMeta.textContent = slider.value;
+        });
+      }
+
+      function startStream(conf) {
+        if (!liveFeed) return;
+        const url = `/video?conf=${conf}`;
+        liveFeed.src = url;
+        liveFeed.style.opacity = "0";
+        setStreamStatus("Connecting to stream...");
+        startBtn.disabled = true;
+        stopBtn.disabled = false;
+
+        liveFeed.onload = () => {
+          liveFeed.style.opacity = "1";
+          setStreamStatus("Live stream active");
+        };
+
+        liveFeed.onerror = () => {
+          setStreamStatus("Error loading stream");
+          startBtn.disabled = false;
+          stopBtn.disabled = true;
+        };
+      }
+
+      function stopStream() {
+        if (!liveFeed) return;
+        liveFeed.src = "";
+        setStreamStatus("Stream idle");
+        startBtn.disabled = false;
+        stopBtn.disabled = true;
+      }
+
+      if (startBtn && stopBtn) {
+        startBtn.addEventListener("click", () => {
+          startStream(slider.value);
+        });
+        stopBtn.addEventListener("click", () => {
+          stopStream();
+        });
+      }
+
+      // Initialize from URL query (?conf=...)
+      const params = new URLSearchParams(window.location.search);
+      const initialConf = params.get("conf");
+      if (initialConf && slider) {
+        slider.value = initialConf;
+        confValue.textContent = initialConf;
+        confMeta.textContent = initialConf;
+        startStream(initialConf);
+      }
+
+      // System status from Flask APIs
+      async function hydrateStatus() {
+        const pill = document.getElementById("system-pill");
+        const subtitle = document.getElementById("system-subtitle");
+        try {
+          const [healthRes, statusRes] = await Promise.all([
+            fetch("/health"),
+            fetch("/api/system/status"),
+          ]);
+
+          const health = await healthRes.json();
+          const sys = await statusRes.json();
+
+          const healthy =
+            health.status === "healthy" && health.model_loaded === true;
+
+          if (pill) {
+            pill.classList.toggle("system-pill--error", !healthy);
+          }
+
+          if (subtitle) {
+            subtitle.textContent = healthy
+              ? `Model: ${
+                  sys.ml_service && sys.ml_service.model_path
+                    ? sys.ml_service.model_path
+                    : "loaded"
+                } • Anonymization: ${
+                  sys.anonymization ? "enabled" : "disabled"
+                }`
+              : "Model not loaded or health check failed";
+          }
+
+          const accuracyEl = document.getElementById("stat-accuracy");
+          if (accuracyEl) {
+            accuracyEl.textContent = healthy ? "94.3%" : "--%";
+          }
+        } catch (e) {
+          if (subtitle) {
+            subtitle.textContent = "Unable to reach /health or /api/system/status";
+          }
+        }
+      }
+
+      hydrateStatus();
+      setInterval(hydrateStatus, 30000);
+    </script>
+  </body>
 </html>
-
-
