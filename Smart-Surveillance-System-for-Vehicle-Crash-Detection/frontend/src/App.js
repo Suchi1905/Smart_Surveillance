@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import "./App.css";
 
-const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
+const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
 
 function App() {
   const [clock, setClock] = useState("--:--:--");
@@ -54,8 +54,7 @@ function App() {
               ? sys.ml_service.model_path
               : "loaded";
           setSystemSubtitle(
-            `Model: ${modelPath} • Anonymization: ${
-              sys.anonymization ? "enabled" : "disabled"
+            `Model: ${modelPath} • Anonymization: ${sys.anonymization ? "enabled" : "disabled"
             }`
           );
           setAiAccuracy("94.3%");
