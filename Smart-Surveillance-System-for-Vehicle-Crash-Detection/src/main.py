@@ -16,7 +16,7 @@ from pathlib import Path
 
 from .config import get_settings
 from .database import init_db
-from .routers import health_router, system_router, crashes_router, video_router
+from .routers import health_router, system_router, crashes_router, video_router, websocket_router, analytics_router
 from .routers.health import set_model_status
 from .routers.system import set_system_status
 from .routers.video import set_frame_generator
@@ -128,6 +128,8 @@ app.include_router(health_router)
 app.include_router(system_router)
 app.include_router(crashes_router)
 app.include_router(video_router)
+app.include_router(websocket_router)
+app.include_router(analytics_router)
 
 
 # Serve React frontend (production)
