@@ -1,0 +1,212 @@
+.settings-view {
+    padding: 24px;
+    height: 100%;
+    overflow-y: auto;
+}
+
+.settings-view__header {
+    margin-bottom: 24px;
+}
+
+.settings-view__title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 0;
+    background: linear-gradient(135deg, #f1f5f9, #22d3ee);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.settings-view__subtitle {
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.5);
+    margin: 4px 0 0 0;
+}
+
+.settings-view__loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    height: 200px;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.settings-view__message {
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    font-size: 0.9rem;
+}
+
+.settings-view__message--success {
+    background: rgba(34, 197, 94, 0.1);
+    border: 1px solid rgba(34, 197, 94, 0.3);
+    color: #4ade80;
+}
+
+.settings-view__message--error {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: #f87171;
+}
+
+.settings-view__grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+}
+
+@media (max-width: 1000px) {
+    .settings-view__grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.settings-card {
+    padding: 20px;
+}
+
+.settings-card__title {
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 0 0 16px 0;
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.settings-card__empty {
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 0.85rem;
+}
+
+/* Settings Field */
+.settings-field {
+    margin-bottom: 20px;
+}
+
+.settings-field:last-child {
+    margin-bottom: 0;
+}
+
+.settings-field__label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.8);
+    margin-bottom: 8px;
+}
+
+.settings-field__input-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.settings-field__value {
+    min-width: 50px;
+    padding: 6px 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    font-size: 0.9rem;
+    color: #22d3ee;
+    font-weight: 600;
+    text-align: center;
+}
+
+.settings-field__input {
+    width: 100%;
+    padding: 10px 14px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    color: #fff;
+    font-size: 0.9rem;
+    transition: border-color 0.2s;
+}
+
+.settings-field__input:focus {
+    outline: none;
+    border-color: #22d3ee;
+}
+
+.settings-field__input::placeholder {
+    color: rgba(255, 255, 255, 0.3);
+}
+
+.settings-field__help {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.4);
+    margin: 6px 0 0 0;
+}
+
+.settings-field__checkbox {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+.settings-field__checkbox input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: #22d3ee;
+    cursor: pointer;
+}
+
+/* System Info */
+.system-info {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.system-info__row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.system-info__row:last-child {
+    border-bottom: none;
+}
+
+.system-info__label {
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.system-info__value {
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.system-info__value--loaded {
+    color: #4ade80;
+}
+
+.system-info__value--error,
+.system-info__value--unknown {
+    color: #f87171;
+}
+
+.system-info__code {
+    font-size: 0.75rem;
+    padding: 4px 8px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+    font-family: monospace;
+    color: #22d3ee;
+}
+
+/* Actions */
+.settings-view__actions {
+    margin-top: 24px;
+    display: flex;
+    justify-content: flex-end;
+}

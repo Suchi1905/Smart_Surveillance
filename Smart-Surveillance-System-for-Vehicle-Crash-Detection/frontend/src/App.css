@@ -523,9 +523,8 @@ body::before {
    Camera Grid
    ============================================ */
 .grid {
-  display: grid;
-  grid-template-columns: minmax(0, 2.2fr) minmax(0, 1fr) minmax(0, 1fr);
-  grid-auto-rows: minmax(0, 280px);
+  display: flex;
+  flex-direction: column;
   gap: 20px;
 }
 
@@ -539,7 +538,8 @@ body::before {
 }
 
 .camera-card--primary {
-  grid-row: span 2;
+  /* Full width single card */
+  min-height: 400px;
 }
 
 .camera-card__header {
