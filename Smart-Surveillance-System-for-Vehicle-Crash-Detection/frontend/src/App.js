@@ -2,6 +2,8 @@ import React, { useEffect, useRef, useState } from "react";
 import "./App.css";
 import AlertsPanel from "./components/AlertsPanel";
 import AnalyticsWidget from "./components/AnalyticsWidget";
+import IncidentsView from "./components/IncidentsView";
+import SettingsView from "./components/SettingsView";
 
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
 
@@ -17,6 +19,9 @@ function App() {
   const liveFeedRef = useRef(null);
   const [streamStatus, setStreamStatus] = useState("Stream idle");
   const [streaming, setStreaming] = useState(false);
+
+  // Navigation state
+  const [activeView, setActiveView] = useState('dashboard');
 
   // Clock
   useEffect(() => {
@@ -116,6 +121,170 @@ function App() {
     setStreamStatus("Stream idle");
   };
 
+  // Navigation items
+  const navItems = [
+    { id: 'dashboard', icon: '⬤', label: 'Dashboard' },
+    { id: 'feeds', icon: '📹', label: 'Live Feeds' },
+    { id: 'incidents', icon: '⚠️', label: 'Incident Logs' },
+    { id: 'settings', icon: '⚙️', label: 'Settings' }
+  ];
+
+  // Get page title based on active view
+  const getPageTitle = () => {
+    switch (activeView) {
+      case 'feeds': return 'Live Detection Feed';
+      case 'incidents': return 'Incident Logs';
+      case 'settings': return 'System Settings';
+      default: return 'Smart Surveillance Dashboard';
+    }
+  };
+
+  // Render main content based on active view
+  const renderMainContent = () => {
+    switch (activeView) {
+      case 'incidents':
+        return <IncidentsView />;
+
+      case 'settings':
+        return <SettingsView />;
+
+      case 'feeds':
+      case 'dashboard':
+      default:
+        return (
+          <>
+            {/* Analytics strip - only show on dashboard */}
+            {activeView === 'dashboard' && (
+              <section className="analytics">
+                <article className="stat-card glass">
+                  <div className="stat-card__label">TOTAL CAMERAS</div>
+                  <div className="stat-card__value">1</div>
+                  <div className="stat-card__meta">Active detection zone</div>
+                </article>
+
+                <article className="stat-card glass">
+                  <div className="stat-card__label">UPTIME</div>
+                  <div className="stat-card__value">99.98%</div>
+                  <div className="stat-card__meta">Last restart: &lt; 24h</div>
+                </article>
+
+                <article className="stat-card glass">
+                  <div className="stat-card__label">INCIDENTS TODAY</div>
+                  <div className="stat-card__value">{incidentsToday}</div>
+                  <div className="stat-card__meta">Crash triage events</div>
+                </article>
+
+                <article className="stat-card glass">
+                  <div className="stat-card__label">AI ACCURACY</div>
+                  <div className="stat-card__value">{aiAccuracy}</div>
+                  <div className="stat-card__meta">Model performance (approx)</div>
+                </article>
+              </section>
+            )}
+
+            {/* Camera grid */}
+            <section className="grid">
+              {/* Primary live feed card */}
+              <article className="camera-card glass camera-card--primary">
+                <header className="camera-card__header">
+                  <div className="camera-card__title-group">
+                    <h2 className="camera-card__title">Live Crash Detection Feed</h2>
+                    <span className="camera-card__subtitle">
+                      Edge anonymization • Severity triage • YOLO detection
+                    </span>
+                  </div>
+
+                  <div className="camera-card__badges">
+                    <span className="badge badge--live">LIVE</span>
+                    <span className="badge">Accident</span>
+                    <span className="badge">Vehicle</span>
+                    <span className="badge">Human</span>
+                  </div>
+                </header>
+
+                <div className="camera-card__body">
+                  <div className="camera-card__controls">
+                    <label className="field">
+                      <span className="field__label">Confidence Threshold</span>
+                      <div className="field__input-row">
+                        <input
+                          type="range"
+                          min="0.1"
+                          max="1.0"
+                          step="0.1"
+                          value={conf}
+                          onChange={(e) => setConf(parseFloat(e.target.value))}
+                        />
+                        <span className="field__value">{conf.toFixed(1)}</span>
+                      </div>
+                    </label>
+
+                    <div className="button-row">
+                      <button
+                        type="button"
+                        className="btn btn--primary"
+                        onClick={() => startStream(conf)}
+                        disabled={streaming}
+                      >
+                        Start Detection
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn--ghost"
+                        onClick={stopStream}
+                        disabled={!streaming}
+                      >
+                        Stop
+                      </button>
+                    </div>
+
+                    <div className="meta-row">
+                      <span className="meta-row__item">
+                        Stream URL:
+                        <code>{`${API_URL}/video?conf=${conf.toFixed(1)}`}</code>
+                      </span>
+                      <span className="meta-row__item">{streamStatus}</span>
+                    </div>
+                  </div>
+
+                  <div className="camera-card__feed">
+                    <div className="camera-card__feed-frame">
+                      <img
+                        ref={liveFeedRef}
+                        alt="Live crash detection stream"
+                        className="live-feed"
+                      />
+                      <div className="camera-card__feed-overlay" />
+                    </div>
+                    <div className="camera-card__caption">
+                      <span className="camera-card__caption-main">
+                        Feed: North Intersection
+                      </span>
+                      <span className="camera-card__caption-sub">
+                        Powered by /video endpoint &amp; real-time YOLO inference
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </article>
+            </section>
+
+            {/* Alerts and Analytics Section - only on dashboard */}
+            {activeView === 'dashboard' && (
+              <section className="dashboard-extras">
+                <div className="dashboard-extras__alerts">
+                  <AlertsPanel maxAlerts={10} />
+                </div>
+                <div className="dashboard-extras__analytics">
+                  <AnalyticsWidget />
+                </div>
+              </section>
+            )}
+          </>
+        );
+    }
+  };
+
   return (
     <div className="app-container">
       {/* Sidebar */}
@@ -125,21 +294,17 @@ function App() {
         </div>
 
         <nav className="sidebar__nav">
-          <button
-            className="sidebar__item sidebar__item--active"
-            aria-label="Dashboard"
-          >
-            <span className="sidebar__icon">⬤</span>
-          </button>
-          <button className="sidebar__item" aria-label="Live Feeds">
-            <span className="sidebar__icon">📹</span>
-          </button>
-          <button className="sidebar__item" aria-label="Incident Logs">
-            <span className="sidebar__icon">⚠️</span>
-          </button>
-          <button className="sidebar__item" aria-label="Settings">
-            <span className="sidebar__icon">⚙️</span>
-          </button>
+          {navItems.map((item) => (
+            <button
+              key={item.id}
+              className={`sidebar__item ${activeView === item.id ? 'sidebar__item--active' : ''}`}
+              aria-label={item.label}
+              title={item.label}
+              onClick={() => setActiveView(item.id)}
+            >
+              <span className="sidebar__icon">{item.icon}</span>
+            </button>
+          ))}
         </nav>
 
         <div className="sidebar__footer">
@@ -164,7 +329,7 @@ function App() {
             </div>
 
             <div className="header__meta">
-              <span className="header__label">Smart Surveillance Dashboard</span>
+              <span className="header__label">{getPageTitle()}</span>
               <span className="header__sub">{systemSubtitle}</span>
             </div>
           </div>
@@ -185,129 +350,7 @@ function App() {
 
         {/* Main content */}
         <main className="main">
-          {/* Analytics strip */}
-          <section className="analytics">
-            <article className="stat-card glass">
-              <div className="stat-card__label">TOTAL CAMERAS</div>
-              <div className="stat-card__value">4</div>
-              <div className="stat-card__meta">All zones online</div>
-            </article>
-
-            <article className="stat-card glass">
-              <div className="stat-card__label">UPTIME</div>
-              <div className="stat-card__value">99.98%</div>
-              <div className="stat-card__meta">Last restart: &lt; 24h</div>
-            </article>
-
-            <article className="stat-card glass">
-              <div className="stat-card__label">INCIDENTS TODAY</div>
-              <div className="stat-card__value">{incidentsToday}</div>
-              <div className="stat-card__meta">Crash triage events</div>
-            </article>
-
-            <article className="stat-card glass">
-              <div className="stat-card__label">AI ACCURACY</div>
-              <div className="stat-card__value">{aiAccuracy}</div>
-              <div className="stat-card__meta">Model performance (approx)</div>
-            </article>
-          </section>
-
-          {/* Camera grid */}
-          <section className="grid">
-            {/* Primary live feed card */}
-            <article className="camera-card glass camera-card--primary">
-              <header className="camera-card__header">
-                <div className="camera-card__title-group">
-                  <h2 className="camera-card__title">Live Crash Detection Feed</h2>
-                  <span className="camera-card__subtitle">
-                    Edge anonymization • Severity triage • YOLO detection
-                  </span>
-                </div>
-
-                <div className="camera-card__badges">
-                  <span className="badge badge--live">LIVE</span>
-                  <span className="badge">Accident</span>
-                  <span className="badge">Vehicle</span>
-                  <span className="badge">Human</span>
-                </div>
-              </header>
-
-              <div className="camera-card__body">
-                <div className="camera-card__controls">
-                  <label className="field">
-                    <span className="field__label">Confidence Threshold</span>
-                    <div className="field__input-row">
-                      <input
-                        type="range"
-                        min="0.1"
-                        max="1.0"
-                        step="0.1"
-                        value={conf}
-                        onChange={(e) => setConf(parseFloat(e.target.value))}
-                      />
-                      <span className="field__value">{conf.toFixed(1)}</span>
-                    </div>
-                  </label>
-
-                  <div className="button-row">
-                    <button
-                      type="button"
-                      className="btn btn--primary"
-                      onClick={() => startStream(conf)}
-                      disabled={streaming}
-                    >
-                      Start Detection
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn--ghost"
-                      onClick={stopStream}
-                      disabled={!streaming}
-                    >
-                      Stop
-                    </button>
-                  </div>
-
-                  <div className="meta-row">
-                    <span className="meta-row__item">
-                      Stream URL:
-                      <code>{`${API_URL}/video?conf=${conf.toFixed(1)}`}</code>
-                    </span>
-                    <span className="meta-row__item">{streamStatus}</span>
-                  </div>
-                </div>
-
-                <div className="camera-card__feed">
-                  <div className="camera-card__feed-frame">
-                    <img
-                      ref={liveFeedRef}
-                      alt="Live crash detection stream"
-                      className="live-feed"
-                    />
-                    <div className="camera-card__feed-overlay" />
-                  </div>
-                  <div className="camera-card__caption">
-                    <span className="camera-card__caption-main">
-                      Feed: North Intersection
-                    </span>
-                    <span className="camera-card__caption-sub">
-                      Powered by /video endpoint &amp; real-time YOLO inference
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </article>
-          </section>
-
-          {/* New: Alerts and Analytics Section */}
-          <section className="dashboard-extras">
-            <div className="dashboard-extras__alerts">
-              <AlertsPanel maxAlerts={10} />
-            </div>
-            <div className="dashboard-extras__analytics">
-              <AnalyticsWidget />
-            </div>
-          </section>
+          {renderMainContent()}
         </main>
       </div>
     </div>
