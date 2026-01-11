@@ -297,55 +297,6 @@ function App() {
                 </div>
               </div>
             </article>
-
-            {/* Secondary camera tiles */}
-            <article className="camera-card glass">
-              <header className="camera-card__header camera-card__header--compact">
-                <h3 className="camera-card__title">CAM-02 • East Corridor</h3>
-                <span className="badge badge--live">LIVE</span>
-              </header>
-              <div className="camera-card__thumbnail" />
-              <footer className="camera-card__caption camera-card__caption--compact">
-                <span className="camera-card__caption-main">
-                  Feed: East Corridor
-                </span>
-                <span className="camera-card__caption-sub">
-                  Monitoring vehicle throughput
-                </span>
-              </footer>
-            </article>
-
-            <article className="camera-card glass">
-              <header className="camera-card__header camera-card__header--compact">
-                <h3 className="camera-card__title">CAM-03 • City Tunnel</h3>
-                <span className="badge">Standby</span>
-              </header>
-              <div className="camera-card__thumbnail camera-card__thumbnail--standby" />
-              <footer className="camera-card__caption camera-card__caption--compact">
-                <span className="camera-card__caption-main">
-                  Feed: City Tunnel
-                </span>
-                <span className="camera-card__caption-sub">
-                  Awaiting connection handshake
-                </span>
-              </footer>
-            </article>
-
-            <article className="camera-card glass">
-              <header className="camera-card__header camera-card__header--compact">
-                <h3 className="camera-card__title">CAM-04 • West Bypass</h3>
-                <span className="badge">Recording</span>
-              </header>
-              <div className="camera-card__thumbnail camera-card__thumbnail--recording" />
-              <footer className="camera-card__caption camera-card__caption--compact">
-                <span className="camera-card__caption-main">
-                  Feed: West Bypass
-                </span>
-                <span className="camera-card__caption-sub">
-                  Night-vision enhanced
-                </span>
-              </footer>
-            </article>
           </section>
 
           {/* New: Alerts and Analytics Section */}
