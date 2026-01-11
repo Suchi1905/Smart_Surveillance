@@ -1,0 +1,211 @@
+.analytics-widget {
+    padding: 1rem;
+}
+
+.analytics-widget__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.analytics-widget__title {
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 0;
+}
+
+.analytics-widget__updated {
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.analytics-widget__loading,
+.analytics-widget__error {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 2rem;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Analytics Grid */
+.analytics-widget__grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.analytics-card {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    transition: transform 0.2s, background 0.2s;
+}
+
+.analytics-card:hover {
+    transform: translateY(-2px);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.analytics-card__icon {
+    font-size: 1.5rem;
+}
+
+.analytics-card__content {
+    display: flex;
+    flex-direction: column;
+}
+
+.analytics-card__value {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #fff;
+}
+
+.analytics-card__label {
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.5);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Section */
+.analytics-widget__section {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.analytics-widget__section-title {
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin: 0 0 0.75rem 0;
+}
+
+/* Speed Stats */
+.speed-stats {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.speed-stat {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0.5rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+}
+
+.speed-stat__label {
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.5);
+    margin-bottom: 0.25rem;
+}
+
+.speed-stat__value {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #00ff64;
+}
+
+.speed-stat__value--max {
+    color: #ff6464;
+}
+
+.speed-stat__value--warning {
+    color: #ffc832;
+}
+
+/* Speed Distribution */
+.speed-distribution {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.speed-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.75rem;
+}
+
+.speed-bar__label {
+    width: 50px;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.speed-bar__track {
+    flex: 1;
+    height: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.speed-bar__fill {
+    height: 100%;
+    background: linear-gradient(90deg, #00ff64, #00c8ff);
+    border-radius: 4px;
+    transition: width 0.5s ease;
+}
+
+.speed-bar__count {
+    width: 30px;
+    text-align: right;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+/* Recent Alerts */
+.recent-alerts {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.recent-alert {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+    font-size: 0.8rem;
+}
+
+.recent-alert__type {
+    text-transform: capitalize;
+}
+
+.recent-alert__severity {
+    padding: 0.15rem 0.4rem;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    background: rgba(255, 200, 50, 0.2);
+    color: #ffc832;
+}

@@ -1,5 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import "./App.css";
+import AlertsPanel from "./components/AlertsPanel";
+import AnalyticsWidget from "./components/AnalyticsWidget";
 
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
 
@@ -344,6 +346,16 @@ function App() {
                 </span>
               </footer>
             </article>
+          </section>
+
+          {/* New: Alerts and Analytics Section */}
+          <section className="dashboard-extras">
+            <div className="dashboard-extras__alerts">
+              <AlertsPanel maxAlerts={10} />
+            </div>
+            <div className="dashboard-extras__analytics">
+              <AnalyticsWidget />
+            </div>
           </section>
         </main>
       </div>
