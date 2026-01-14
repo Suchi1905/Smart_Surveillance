@@ -1,0 +1,238 @@
+/* DetectionLegend.css - Styles for the Detection Legend Overlay */
+
+.detection-legend {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    background: rgba(2, 6, 23, 0.9);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--border-medium);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    z-index: 10;
+    min-width: 180px;
+    transition: all var(--transition-normal) ease;
+    overflow: hidden;
+}
+
+.detection-legend--minimized {
+    min-width: auto;
+}
+
+.detection-legend__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 10px 14px;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, transparent 100%);
+    cursor: pointer;
+    transition: background var(--transition-fast);
+}
+
+.detection-legend__header:hover {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.25) 0%, transparent 100%);
+}
+
+.detection-legend__title {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-primary);
+}
+
+.detection-legend__toggle {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 10px;
+    cursor: pointer;
+    padding: 2px;
+    transition: color var(--transition-fast);
+}
+
+.detection-legend__toggle:hover {
+    color: var(--primary-cyan);
+}
+
+.detection-legend__content {
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    animation: fadeIn var(--transition-normal) ease;
+}
+
+/* Legend Sections */
+.legend-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.legend-section__title {
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-muted);
+    margin: 0;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.legend-items {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.legend-items--speed,
+.legend-items--behavior {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.legend-items--visual {
+    gap: 8px;
+}
+
+/* Legend Items */
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    color: var(--text-secondary);
+}
+
+.legend-item__color {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    flex-shrink: 0;
+    box-shadow: 0 0 8px currentColor;
+}
+
+.legend-item__label {
+    font-weight: 500;
+}
+
+/* Speed Items */
+.legend-item--speed {
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+
+.legend-item__bar {
+    width: 24px;
+    height: 6px;
+    border-radius: 3px;
+}
+
+.legend-item__speed-label {
+    font-size: 9px;
+    color: var(--text-muted);
+}
+
+/* Behavior Items */
+.legend-item--behavior {
+    padding: 4px 8px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: var(--radius-sm);
+    gap: 4px;
+}
+
+.legend-item__icon {
+    font-size: 12px;
+}
+
+.legend-item__behavior-label {
+    font-size: 9px;
+    color: var(--text-muted);
+}
+
+/* Visual Elements */
+.legend-item--visual {
+    gap: 10px;
+}
+
+.legend-visual {
+    flex-shrink: 0;
+}
+
+.legend-visual--box {
+    width: 18px;
+    height: 14px;
+    border: 2px solid #ef4444;
+    border-radius: 2px;
+}
+
+.legend-visual--trail {
+    width: 20px;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #22c55e, transparent);
+    position: relative;
+}
+
+.legend-visual--trail::before,
+.legend-visual--trail::after {
+    content: '';
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: #22c55e;
+    top: -1px;
+}
+
+.legend-visual--trail::before {
+    left: 0;
+    opacity: 0.3;
+}
+
+.legend-visual--trail::after {
+    right: 0;
+}
+
+.legend-visual--line {
+    width: 20px;
+    height: 2px;
+    background: #f59e0b;
+    position: relative;
+}
+
+.legend-visual--line::before {
+    content: '⚠';
+    position: absolute;
+    font-size: 8px;
+    top: -6px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .detection-legend {
+        top: 8px;
+        right: 8px;
+        min-width: 160px;
+    }
+
+    .detection-legend__content {
+        padding: 10px 12px;
+    }
+}
+
+@media (max-width: 480px) {
+    .detection-legend {
+        position: relative;
+        top: auto;
+        right: auto;
+        margin-top: 12px;
+    }
+}
