@@ -36,10 +36,22 @@ const AlertsPanel = ({ maxAlerts = 10 }) => {
                         const newAlert = {
                             id: Date.now(),
                             ...data.data,
-                            timestamp: new Date().toLocaleTimeString()
+                            timestamp: new Date().toLocaleTimeString(),
+                            sentToTelegram: false
                         };
 
                         setAlerts(prev => [newAlert, ...prev].slice(0, maxAlerts));
+                    } else if (data.type === 'notification_sent') {
+                        // Update the alert to show it was sent to Telegram
+                        const { track_id } = data.data;
+                        setAlerts(prev => prev.map(alert =>
+                            alert.track_id === track_id
+                                ? { ...alert, sentToTelegram: true }
+                                : alert
+                        ));
+
+                        // Optional: Show toast here if you implement a toast system
+                        console.log('Telegram notification confirmed sent');
                     }
                 } catch (err) {
                     console.error('Failed to parse WebSocket message:', err);
@@ -152,7 +164,14 @@ const AlertsPanel = ({ maxAlerts = 10 }) => {
                                     {alert.description || alert.message || 'Detection triggered'}
                                 </p>
                                 {alert.track_id && (
-                                    <span className="alert-item__track">Track ID: {alert.track_id}</span>
+                                    <div className="alert-item__meta">
+                                        <span className="alert-item__track">#{alert.track_id}</span>
+                                        {alert.sentToTelegram && (
+                                            <span className="alert-item__telegram" title="Notification sent to Telegram">
+                                                ✈️ Sent
+                                            </span>
+                                        )}
+                                    </div>
                                 )}
                             </div>
                             <button

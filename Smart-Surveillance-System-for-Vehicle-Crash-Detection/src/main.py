@@ -19,7 +19,7 @@ from .database import init_db
 from .routers import health_router, system_router, crashes_router, video_router, websocket_router, analytics_router
 from .routers.health import set_model_status
 from .routers.system import set_system_status
-from .routers.video import set_frame_generator
+from .routers.video import set_frame_generator, set_detection_service
 from .services.detection import DetectionService
 from .services.telegram import send_telegram_alert
 
@@ -68,9 +68,49 @@ async def lifespan(app: FastAPI):
     
     # Set frame generator for video router
     set_frame_generator(detection_service.generate_frames)
+    set_detection_service(detection_service)
     
-    # Set alert callback
-    detection_service.set_alert_callback(send_telegram_alert)
+    # Set alert callback with WebSocket notification
+    from .routers.websocket import get_ws_manager
+    import asyncio
+    
+    def alert_callback_wrapper(confidence, frame, severity_info=None):
+        """
+        Wraps Telegram alert to also notify frontend via WebSocket.
+        """
+        # 1. Send Telegram Alert
+        sent = send_telegram_alert(confidence, frame, severity_info)
+        
+        # 2. Notify Frontend via WebSocket if successful
+        if sent and severity_info:
+            try:
+                manager = get_ws_manager()
+                
+                # Construct clean notification data
+                notification_data = {
+                    "type": "notification_sent",
+                    "platform": "Telegram",
+                    "timestamp": get_settings().get_timestamp(),
+                    "track_id": severity_info.get('track_id', 'N/A'),
+                    "severity": severity_info.get('severity_category', 'Unknown')
+                }
+                
+                # Broadcast properly using the manager's queue
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                     asyncio.run_coroutine_threadsafe(
+                        manager.broadcast({
+                            "type": "notification_sent",
+                            "data": notification_data
+                        }, "alerts"),
+                        loop
+                    )
+            except Exception as e:
+                logger.error(f"Failed to broadcast alert notification: {e}")
+                
+        return sent
+
+    detection_service.set_alert_callback(alert_callback_wrapper)
     
     settings = get_settings()
     logger.info(f"📡 API running on: http://{settings.api_host}:{settings.api_port}")

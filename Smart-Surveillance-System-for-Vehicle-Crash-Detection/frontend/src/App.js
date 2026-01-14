@@ -4,6 +4,9 @@ import AlertsPanel from "./components/AlertsPanel";
 import AnalyticsWidget from "./components/AnalyticsWidget";
 import IncidentsView from "./components/IncidentsView";
 import SettingsView from "./components/SettingsView";
+import FeaturesGuide from "./components/FeaturesGuide";
+import DetectionLegend from "./components/DetectionLegend";
+import LiveStatusPanel from "./components/LiveStatusPanel";
 
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
 
@@ -112,13 +115,20 @@ function App() {
     };
   };
 
-  const stopStream = () => {
+  const stopStream = async () => {
     const img = liveFeedRef.current;
-    if (img) {
-      img.src = "";
+    if (!img) return;
+
+    // Explicitly tell backend to release camera
+    try {
+      await fetch(`${API_URL}/video/stop`, { method: 'POST' });
+    } catch (err) {
+      console.warn("Failed to send stop signal:", err);
     }
+
+    img.src = "";
     setStreaming(false);
-    setStreamStatus("Stream idle");
+    setStreamStatus("Stream stopped");
   };
 
   // Navigation items
@@ -153,6 +163,11 @@ function App() {
       default:
         return (
           <>
+            {/* Features Guide - explains what the system does */}
+            {activeView === 'dashboard' && (
+              <FeaturesGuide />
+            )}
+
             {/* Analytics strip - only show on dashboard */}
             {activeView === 'dashboard' && (
               <section className="analytics">
@@ -180,6 +195,11 @@ function App() {
                   <div className="stat-card__meta">Model performance (approx)</div>
                 </article>
               </section>
+            )}
+
+            {/* Live Status Panel - real-time metrics */}
+            {activeView === 'dashboard' && (
+              <LiveStatusPanel isStreaming={streaming} apiUrl={API_URL} />
             )}
 
             {/* Camera grid */}
@@ -255,15 +275,17 @@ function App() {
                         className="live-feed"
                       />
                       <div className="camera-card__feed-overlay" />
+                      {/* Detection Legend Overlay */}
+                      <DetectionLegend isVisible={streaming} />
                     </div>
-                    <div className="camera-card__caption">
-                      <span className="camera-card__caption-main">
-                        Feed: North Intersection
-                      </span>
-                      <span className="camera-card__caption-sub">
-                        Powered by /video endpoint &amp; real-time YOLO inference
-                      </span>
-                    </div>
+                  </div>
+                  <div className="camera-card__caption">
+                    <span className="camera-card__caption-main">
+                      Feed: North Intersection
+                    </span>
+                    <span className="camera-card__caption-sub">
+                      Powered by /video endpoint &amp; real-time YOLO inference
+                    </span>
                   </div>
                 </div>
               </article>
@@ -284,6 +306,7 @@ function App() {
         );
     }
   };
+
 
   return (
     <div className="app-container">

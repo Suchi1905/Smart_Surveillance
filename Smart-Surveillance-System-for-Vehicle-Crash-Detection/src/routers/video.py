@@ -11,13 +11,19 @@ router = APIRouter(tags=["Video"])
 
 
 # Global reference to frame generator (set by main.py)
+# Global reference to frame generator (set by main.py)
 _frame_generator = None
-
+_detection_service = None
 
 def set_frame_generator(generator_func):
     """Set the frame generator function."""
     global _frame_generator
     _frame_generator = generator_func
+
+def set_detection_service(service):
+    """Set the detection service instance."""
+    global _detection_service
+    _detection_service = service
 
 
 @router.get("/video")
@@ -46,3 +52,19 @@ async def video_stream(
         _frame_generator(conf),
         media_type="multipart/x-mixed-replace; boundary=frame"
     )
+
+@router.post("/video/stop")
+async def stop_video_stream():
+    """
+    Stop the video stream and release camera resources.
+    """
+    global _detection_service
+    
+    if _detection_service and hasattr(_detection_service, 'stop_stream'):
+        try:
+            _detection_service.stop_stream()
+            return {"status": "stopped", "message": "Camera release signal sent"}
+        except Exception as e:
+            return {"status": "error", "message": f"Error stopping stream: {str(e)}"}
+            
+    return {"status": "error", "message": "Detection service not initialized"}

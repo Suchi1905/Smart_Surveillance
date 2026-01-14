@@ -85,21 +85,48 @@ class TelegramAlertService:
         confidence: float, 
         severity_info: Optional[dict]
     ) -> str:
-        """Build alert message text."""
-        if severity_info:
-            message = (
-                f"🚨 Crash Detected!\n"
-                f"Confidence: {confidence:.2f}\n"
-                f"Severity: {severity_info.get('severity_category', 'Unknown')}\n"
-                f"Severity Index: {severity_info.get('severity_index', 0):.2f}\n"
-                f"Track ID: {severity_info.get('track_id', 'N/A')}\n"
-                f"⚠️ Frame anonymized for privacy compliance"
+        """Build alert message text with severity advice."""
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        
+        if not severity_info:
+            return (
+                f"🚨 *CRASH DETECTED*\n"
+                f"🕒 Time: {timestamp}\n"
+                f"📊 Confidence: {confidence:.2f}\n\n"
+                f"⚠️ *Analysis pending...*\n"
+                f"🔒 Frame anonymized for privacy"
             )
+
+        category = severity_info.get('severity_category', 'Unknown')
+        index = severity_info.get('severity_index', 0)
+        track_id = severity_info.get('track_id', 'N/A')
+
+        # Severity-specific messaging
+        if category == "Severe":
+            icon = "🔴"
+            status = "CRITICAL: IMMEDIATE ACTION REQUIRED"
+            advice = "🚑 Call Emergency Services (911/112) immediately.\n👮 Report serious collision."
+        elif category == "Moderate":
+            icon = "🟠"
+            status = "WARNING: Moderate Impact"
+            advice = "🩺 Check for injuries.\n🚙 Assess vehicle damage."
+        elif category == "Mild":
+            icon = "🟡"
+            status = "NOTICE: Minor Incident"
+            advice = "👀 Monitor situation.\n📝 Log incident for review."
         else:
-            message = (
-                f"🚨 Crash Detected with {confidence:.2f} confidence!\n"
-                f"⚠️ Frame anonymized for privacy compliance"
-            )
+            icon = "⚪"
+            status = "MONITORING: Traffic Event"
+            advice = "👁️ Ongoing surveillance."
+
+        message = (
+            f"{icon} *{status}*\n\n"
+            f"🕒 Time: {timestamp}\n"
+            f"📊 Severity Index: {index:.2f}\n"
+            f"🎯 Track ID: #{track_id}\n\n"
+            f"💡 *Action Required:*\n{advice}\n\n"
+            f"🔒 _Frame anonymized for privacy_"
+        )
         
         return message
     

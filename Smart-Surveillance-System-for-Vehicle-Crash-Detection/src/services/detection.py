@@ -42,7 +42,13 @@ class DetectionService:
         self.frame_counter = 0
         self.alert_sent = False
         self._alert_callback = None
+        self._stop_event = threading.Event()
     
+    def stop_stream(self):
+        """Signal the frame generator to stop and release resources."""
+        logger.info("Stopping detection stream...")
+        self._stop_event.set()
+
     def load_models(self) -> Tuple[bool, bool]:
         """
         Load YOLO detection and face models.
@@ -103,10 +109,12 @@ class DetectionService:
         Yields:
             MJPEG frame bytes
         """
+        self._stop_event.clear()
         cap = cv2.VideoCapture(0)
+        logger.info("Camera opened for streaming")
         
         try:
-            while True:
+            while not self._stop_event.is_set():
                 success, frame = cap.read()
                 if not success:
                     logger.warning("Failed to read frame from camera")
