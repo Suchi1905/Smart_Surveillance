@@ -29,8 +29,8 @@ class Settings:
         self.bot_token: str = os.getenv("BOT_TOKEN", "YOUR_BOT_TOKEN")
         self.chat_id: str = os.getenv("CHAT_ID", "YOUR_CHAT_ID")
         
-        # Model Configuration
-        self.model_path: str = os.getenv("MODEL_PATH", "backend/weights/best.pt")
+        # Model Configuration - Use best.pt (crash detection model) from root directory
+        self.model_path: str = os.getenv("MODEL_PATH", "best.pt")
         self.face_model_path: str = os.getenv("FACE_MODEL_PATH", "yolov8n-face.pt")
         
         # API Configuration
@@ -64,12 +64,12 @@ class Settings:
     def model_paths(self) -> list:
         """Get list of possible model paths to search."""
         return [
+            "best.pt",  # Root directory (primary)
+            os.path.join(self.base_dir, "best.pt"),
             os.path.join("backend", "weights", "best.pt"),
             "weights/best.pt",
-            "crash_webapp/weights/best.pt",
             os.path.join(self.base_dir, "backend", "weights", "best.pt"),
             os.path.join(self.base_dir, "weights", "best.pt"),
-            os.path.join(self.base_dir, "crash_webapp", "weights", "best.pt"),
         ]
     
     def find_model_path(self) -> Optional[str]:

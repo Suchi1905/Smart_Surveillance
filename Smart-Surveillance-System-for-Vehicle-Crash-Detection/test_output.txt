@@ -1,0 +1,188 @@
+﻿============================= test session starts =============================
+platform win32 -- Python 3.10.11, pytest-7.4.4, pluggy-1.6.0 -- C:\Users\Nikhil Singhvi\AppData\Local\Programs\Python\Python310\python.exe
+cachedir: .pytest_cache
+rootdir: C:\Users\Nikhil Singhvi\OneDrive\Desktop\Conference1\Smart_Surveillance\Smart-Surveillance-System-for-Vehicle-Crash-Detection
+configfile: pytest.ini
+plugins: anyio-3.7.1, asyncio-0.23.3, cov-4.1.0
+asyncio: mode=strict
+collecting ... collected 46 items
+
+tests/test_anonymization.py::TestAnonymizeFrame::test_no_model_returns_original PASSED [  2%]
+tests/test_anonymization.py::TestAnonymizeFrame::test_returns_same_shape PASSED [  4%]
+tests/test_anonymization.py::TestAnonymizeFrame::test_frame_is_copied PASSED [  6%]
+tests/test_anonymization.py::TestBlurLicensePlates::test_white_region_detection FAILED [  8%]
+tests/test_anonymization.py::TestBlurLicensePlates::test_non_plate_regions_preserved PASSED [ 10%]
+tests/test_anonymization.py::TestPrivacyMetrics::test_metrics_without_model FAILED [ 13%]
+tests/test_anonymization.py::TestPrivacyMetrics::test_metrics_structure PASSED [ 15%]
+tests/test_anonymization.py::TestEdgeCases::test_empty_frame PASSED      [ 17%]
+tests/test_anonymization.py::TestEdgeCases::test_single_pixel PASSED     [ 19%]
+tests/test_anonymization.py::TestEdgeCases::test_grayscale_handling PASSED [ 21%]
+tests/test_api_endpoints.py::TestHealthEndpoint::test_health_returns_200 ERROR [ 23%]
+tests/test_api_endpoints.py::TestHealthEndpoint::test_health_response_structure ERROR [ 26%]
+tests/test_api_endpoints.py::TestHealthEndpoint::test_health_status_value ERROR [ 28%]
+tests/test_api_endpoints.py::TestSystemEndpoints::test_system_status_v1 ERROR [ 30%]
+tests/test_api_endpoints.py::TestSystemEndpoints::test_legacy_system_status ERROR [ 32%]
+tests/test_api_endpoints.py::TestSystemEndpoints::test_config_endpoint ERROR [ 34%]
+tests/test_api_endpoints.py::TestCrashEndpoints::test_list_crashes_empty ERROR [ 36%]
+tests/test_api_endpoints.py::TestCrashEndpoints::test_create_crash ERROR [ 39%]
+tests/test_api_endpoints.py::TestCrashEndpoints::test_get_crash_by_id ERROR [ 41%]
+tests/test_api_endpoints.py::TestCrashEndpoints::test_get_nonexistent_crash ERROR [ 43%]
+tests/test_api_endpoints.py::TestCrashEndpoints::test_crash_stats ERROR  [ 45%]
+tests/test_api_endpoints.py::TestCrashEndpoints::test_filter_by_severity ERROR [ 47%]
+tests/test_api_endpoints.py::TestCrashEndpoints::test_pagination ERROR   [ 50%]
+tests/test_api_endpoints.py::TestVideoEndpoint::test_video_endpoint_exists ERROR [ 52%]
+tests/test_api_endpoints.py::TestLegacyEndpoints::test_legacy_status ERROR [ 54%]
+tests/test_api_endpoints.py::TestLegacyEndpoints::test_legacy_config ERROR [ 56%]
+tests/test_severity_triage.py::TestIoUCalculation::test_perfect_overlap PASSED [ 58%]
+tests/test_severity_triage.py::TestIoUCalculation::test_no_overlap PASSED [ 60%]
+tests/test_severity_triage.py::TestIoUCalculation::test_partial_overlap PASSED [ 63%]
+tests/test_severity_triage.py::TestIoUCalculation::test_contained_box PASSED [ 65%]
+tests/test_severity_triage.py::TestBoxCenter::test_simple_box PASSED     [ 67%]
+tests/test_severity_triage.py::TestBoxCenter::test_offset_box PASSED     [ 69%]
+tests/test_severity_triage.py::TestVelocityCalculation::test_no_history PASSED [ 71%]
+tests/test_severity_triage.py::TestVelocityCalculation::test_single_frame PASSED [ 73%]
+tests/test_severity_triage.py::TestVelocityCalculation::test_stationary_object PASSED [ 76%]
+tests/test_severity_triage.py::TestVelocityCalculation::test_moving_object PASSED [ 78%]
+tests/test_severity_triage.py::TestTrackAssignment::test_new_track PASSED [ 80%]
+tests/test_severity_triage.py::TestTrackAssignment::test_second_track PASSED [ 82%]
+tests/test_severity_triage.py::TestTrackAssignment::test_matching_existing_track PASSED [ 84%]
+tests/test_severity_triage.py::TestSeverityIndex::test_insufficient_data PASSED [ 86%]
+tests/test_severity_triage.py::TestSeverityIndex::test_monitoring_category PASSED [ 89%]
+tests/test_severity_triage.py::TestAccidentAnalysis::test_empty_detections PASSED [ 91%]
+tests/test_severity_triage.py::TestAccidentAnalysis::test_non_accident_detection PASSED [ 93%]
+tests/test_severity_triage.py::TestAccidentAnalysis::test_accident_detection PASSED [ 95%]
+tests/test_severity_triage.py::TestAccidentAnalysis::test_multiple_detections PASSED [ 97%]
+tests/test_severity_triage.py::TestReset::test_reset_clears_tracks PASSED [100%]
+
+=================================== ERRORS ====================================
+________ ERROR at setup of TestHealthEndpoint.test_health_returns_200 _________
+tests\test_api_endpoints.py:30: in test_client
+    from main import app
+src\main.py:17: in <module>
+    from .config import get_settings
+E   ImportError: attempted relative import with no known parent package
+_____ ERROR at setup of TestHealthEndpoint.test_health_response_structure _____
+tests\test_api_endpoints.py:30: in test_client
+    from main import app
+src\main.py:17: in <module>
+    from .config import get_settings
+E   ImportError: attempted relative import with no known parent package
+________ ERROR at setup of TestHealthEndpoint.test_health_status_value ________
+tests\test_api_endpoints.py:30: in test_client
+    from main import app
+src\main.py:17: in <module>
+    from .config import get_settings
+E   ImportError: attempted relative import with no known parent package
+_________ ERROR at setup of TestSystemEndpoints.test_system_status_v1 _________
+tests\test_api_endpoints.py:30: in test_client
+    from main import app
+src\main.py:17: in <module>
+    from .config import get_settings
+E   ImportError: attempted relative import with no known parent package
+_______ ERROR at setup of TestSystemEndpoints.test_legacy_system_status _______
+tests\test_api_endpoints.py:30: in test_client
+    from main import app
+src\main.py:17: in <module>
+    from .config import get_settings
+E   ImportError: attempted relative import with no known parent package
+_________ ERROR at setup of TestSystemEndpoints.test_config_endpoint __________
+tests\test_api_endpoints.py:30: in test_client
+    from main import app
+src\main.py:17: in <module>
+    from .config import get_settings
+E   ImportError: attempted relative import with no known parent package
+________ ERROR at setup of TestCrashEndpoints.test_list_crashes_empty _________
+tests\test_api_endpoints.py:30: in test_client
+    from main import app
+src\main.py:17: in <module>
+    from .config import get_settings
+E   ImportError: attempted relative import with no known parent package
+___________ ERROR at setup of TestCrashEndpoints.test_create_crash ____________
+tests\test_api_endpoints.py:30: in test_client
+    from main import app
+src\main.py:17: in <module>
+    from .config import get_settings
+E   ImportError: attempted relative import with no known parent package
+__________ ERROR at setup of TestCrashEndpoints.test_get_crash_by_id __________
+tests\test_api_endpoints.py:30: in test_client
+    from main import app
+src\main.py:17: in <module>
+    from .config import get_settings
+E   ImportError: attempted relative import with no known parent package
+_______ ERROR at setup of TestCrashEndpoints.test_get_nonexistent_crash _______
+tests\test_api_endpoints.py:30: in test_client
+    from main import app
+src\main.py:17: in <module>
+    from .config import get_settings
+E   ImportError: attempted relative import with no known parent package
+____________ ERROR at setup of TestCrashEndpoints.test_crash_stats ____________
+tests\test_api_endpoints.py:30: in test_client
+    from main import app
+src\main.py:17: in <module>
+    from .config import get_settings
+E   ImportError: attempted relative import with no known parent package
+________ ERROR at setup of TestCrashEndpoints.test_filter_by_severity _________
+tests\test_api_endpoints.py:30: in test_client
+    from main import app
+src\main.py:17: in <module>
+    from .config import get_settings
+E   ImportError: attempted relative import with no known parent package
+____________ ERROR at setup of TestCrashEndpoints.test_pagination _____________
+tests\test_api_endpoints.py:30: in test_client
+    from main import app
+src\main.py:17: in <module>
+    from .config import get_settings
+E   ImportError: attempted relative import with no known parent package
+_______ ERROR at setup of TestVideoEndpoint.test_video_endpoint_exists ________
+tests\test_api_endpoints.py:30: in test_client
+    from main import app
+src\main.py:17: in <module>
+    from .config import get_settings
+E   ImportError: attempted relative import with no known parent package
+__________ ERROR at setup of TestLegacyEndpoints.test_legacy_status ___________
+tests\test_api_endpoints.py:30: in test_client
+    from main import app
+src\main.py:17: in <module>
+    from .config import get_settings
+E   ImportError: attempted relative import with no known parent package
+__________ ERROR at setup of TestLegacyEndpoints.test_legacy_config ___________
+tests\test_api_endpoints.py:30: in test_client
+    from main import app
+src\main.py:17: in <module>
+    from .config import get_settings
+E   ImportError: attempted relative import with no known parent package
+================================== FAILURES ===================================
+______________ TestBlurLicensePlates.test_white_region_detection ______________
+tests\test_anonymization.py:67: in test_white_region_detection
+    assert roi.std() < frame[200:240, 300:420].std() or not np.array_equal(
+E   assert (0.0 < 0.0 or not True)
+E    +  where 0.0 = <built-in method std of numpy.ndarray object at 0x000001D2ECB31470>()
+E    +    where <built-in method std of numpy.ndarray object at 0x000001D2ECB31470> = array([[[255, 255, 255],\n        [255, 255, 255],\n        [255, 255, 255],\n        ...,\n        [255, 255, 255],\n        [255, 255, 255],\n        [255, 255, 255]],\n\n       [[255, 255, 255],\n        [255, 255, 255],\n        [255, 255, 255],\n        ...,\n        [255, 255, 255],\n        [255, 255, 255],\n        [255, 255, 255]],\n\n       [[255, 255, 255],\n        [255, 255, 255],\n        [255, 255, 255],\n        ...,\n        [255, 255, 255],\n        [255, 255, 255],\n        [255, 255, 255]],\n\n       ...,\n\n       [[255, 255, 255],\n        [255, 255, 255],\n        [255, 255, 255],\n        ...,\n        [255, 255, 255],\n        [255, 255, 255],\n        [255, 255, 255]],\n\n       [[255, 255, 255],\n        [255, 255, 255],\n        [255, 255, 255],\n        ...,\n        [255, 255, 255],\n        [255, 255, 255],\n        [255, 255, 255]],\n\n       [[255, 255, 255],\n        [255, 255, 255],\n        [255, 255, 255],\n        ...,\n        [255, 255, 255],\n        [255, 255, 255],\n        [255, 255, 255]]], dtype=uint8).std
+E    +  and   0.0 = <built-in method std of numpy.ndarray object at 0x000001D2ECB31410>()
+E    +    where <built-in method std of numpy.ndarray object at 0x000001D2ECB31410> = array([[[255, 255, 255],\n        [255, 255, 255],\n        [255, 255, 255],\n        ...,\n        [255, 255, 255],\n        [255, 255, 255],\n        [255, 255, 255]],\n\n       [[255, 255, 255],\n        [255, 255, 255],\n        [255, 255, 255],\n        ...,\n        [255, 255, 255],\n        [255, 255, 255],\n        [255, 255, 255]],\n\n       [[255, 255, 255],\n        [255, 255, 255],\n        [255, 255, 255],\n        ...,\n        [255, 255, 255],\n        [255, 255, 255],\n        [255, 255, 255]],\n\n       ...,\n\n       [[255, 255, 255],\n        [255, 255, 255],\n        [255, 255, 255],\n        ...,\n        [255, 255, 255],\n        [255, 255, 255],\n        [255, 255, 255]],\n\n       [[255, 255, 255],\n        [255, 255, 255],\n        [255, 255, 255],\n        ...,\n        [255, 255, 255],\n        [255, 255, 255],\n        [255, 255, 255]],\n\n       [[255, 255, 255],\n        [255, 255, 255],\n        [255, 255, 255],\n        ...,\n        [255, 255, 255],\n        [255, 255, 255],\n        [255, 255, 255]]], dtype=uint8).std
+E    +  and   True = <function array_equal at 0x000001D2E9B06A70>(array([[[255, 255, 255],\n        [255, 255, 255],\n        [255, 255, 255],\n        ...,\n        [255, 255, 255],\n        [255, 255, 255],\n        [255, 255, 255]],\n\n       [[255, 255, 255],\n        [255, 255, 255],\n        [255, 255, 255],\n        ...,\n        [255, 255, 255],\n        [255, 255, 255],\n        [255, 255, 255]],\n\n       [[255, 255, 255],\n        [255, 255, 255],\n        [255, 255, 255],\n        ...,\n        [255, 255, 255],\n        [255, 255, 255],\n        [255, 255, 255]],\n\n       ...,\n\n       [[255, 255, 255],\n        [255, 255, 255],\n        [255, 255, 255],\n        ...,\n        [255, 255, 255],\n        [255, 255, 255],\n        [255, 255, 255]],\n\n       [[255, 255, 255],\n        [255, 255, 255],\n        [255, 255, 255],\n        ...,\n        [255, 255, 255],\n        [255, 255, 255],\n        [255, 255, 255]],\n\n       [[255, 255, 255],\n        [255, 255, 255],\n        [255, 255, 255],\n        ...,\n        [255, 255, 255],\n        [255, 255, 255],\n        [255, 255, 255]]], dtype=uint8), array([[[255, 255, 255],\n        [255, 255, 255],\n        [255, 255, 255],\n        ...,\n        [255, 255, 255],\n        [255, 255, 255],\n        [255, 255, 255]],\n\n       [[255, 255, 255],\n        [255, 255, 255],\n        [255, 255, 255],\n        ...,\n        [255, 255, 255],\n        [255, 255, 255],\n        [255, 255, 255]],\n\n       [[255, 255, 255],\n        [255, 255, 255],\n        [255, 255, 255],\n        ...,\n        [255, 255, 255],\n        [255, 255, 255],\n        [255, 255, 255]],\n\n       ...,\n\n       [[255, 255, 255],\n        [255, 255, 255],\n        [255, 255, 255],\n        ...,\n        [255, 255, 255],\n        [255, 255, 255],\n        [255, 255, 255]],\n\n       [[255, 255, 255],\n        [255, 255, 255],\n        [255, 255, 255],\n        ...,\n        [255, 255, 255],\n        [255, 255, 255],\n        [255, 255, 255]],\n\n       [[255, 255, 255],\n        [255, 255, 255],\n        [255, 255, 255],\n        ...,\n        [255, 255, 255],\n        [255, 255, 255],\n        [255, 255, 255]]], dtype=uint8))
+E    +    where <function array_equal at 0x000001D2E9B06A70> = np.array_equal
+________________ TestPrivacyMetrics.test_metrics_without_model ________________
+tests\test_anonymization.py:96: in test_metrics_without_model
+    assert metrics['anonymization_enabled'] is False
+E   assert True is False
+=========================== short test summary info ===========================
+FAILED tests/test_anonymization.py::TestBlurLicensePlates::test_white_region_detection
+FAILED tests/test_anonymization.py::TestPrivacyMetrics::test_metrics_without_model
+ERROR tests/test_api_endpoints.py::TestHealthEndpoint::test_health_returns_200
+ERROR tests/test_api_endpoints.py::TestHealthEndpoint::test_health_response_structure
+ERROR tests/test_api_endpoints.py::TestHealthEndpoint::test_health_status_value
+ERROR tests/test_api_endpoints.py::TestSystemEndpoints::test_system_status_v1
+ERROR tests/test_api_endpoints.py::TestSystemEndpoints::test_legacy_system_status
+ERROR tests/test_api_endpoints.py::TestSystemEndpoints::test_config_endpoint
+ERROR tests/test_api_endpoints.py::TestCrashEndpoints::test_list_crashes_empty
+ERROR tests/test_api_endpoints.py::TestCrashEndpoints::test_create_crash - Im...
+ERROR tests/test_api_endpoints.py::TestCrashEndpoints::test_get_crash_by_id
+ERROR tests/test_api_endpoints.py::TestCrashEndpoints::test_get_nonexistent_crash
+ERROR tests/test_api_endpoints.py::TestCrashEndpoints::test_crash_stats - Imp...
+ERROR tests/test_api_endpoints.py::TestCrashEndpoints::test_filter_by_severity
+ERROR tests/test_api_endpoints.py::TestCrashEndpoints::test_pagination - Impo...
+ERROR tests/test_api_endpoints.py::TestVideoEndpoint::test_video_endpoint_exists
+ERROR tests/test_api_endpoints.py::TestLegacyEndpoints::test_legacy_status - ...
+ERROR tests/test_api_endpoints.py::TestLegacyEndpoints::test_legacy_config - ...
+=================== 2 failed, 28 passed, 16 errors in 2.04s ===================

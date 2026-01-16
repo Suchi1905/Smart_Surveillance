@@ -3,6 +3,10 @@ Frame anonymization service for privacy compliance.
 
 This module provides face and license plate anonymization using
 Gaussian blur for GDPR/privacy compliance.
+
+Supports two face detection methods:
+1. YOLO face model (preferred, more accurate)
+2. OpenCV Haar Cascade (fallback, no extra model needed)
 """
 
 import cv2
@@ -16,6 +20,23 @@ logger = logging.getLogger(__name__)
 # Global face model reference
 _face_model = None
 
+# OpenCV Haar Cascade for face detection (fallback)
+_haar_cascade = None
+
+
+def _get_haar_cascade():
+    """Get or initialize the Haar Cascade face detector."""
+    global _haar_cascade
+    if _haar_cascade is None:
+        cascade_path = cv2.data.haarcascades + 'haarcascade_frontalface_default.xml'
+        _haar_cascade = cv2.CascadeClassifier(cascade_path)
+        if _haar_cascade.empty():
+            logger.warning("Failed to load Haar Cascade")
+            _haar_cascade = None
+        else:
+            logger.info("OpenCV Haar Cascade loaded for face detection")
+    return _haar_cascade
+
 
 def set_face_model(model):
     """Set the face detection model."""
@@ -28,7 +49,7 @@ def anonymize_frame(frame: np.ndarray) -> np.ndarray:
     Anonymize faces and license plates in the frame using Gaussian blur.
     
     This function ensures GDPR/privacy compliance by:
-    1. Detecting and blurring faces using YOLOv8n-face
+    1. Detecting and blurring faces using YOLO or OpenCV Haar Cascade
     2. Detecting and blurring license plates using HSV color filtering
     
     Args:
@@ -37,14 +58,10 @@ def anonymize_frame(frame: np.ndarray) -> np.ndarray:
     Returns:
         Anonymized frame with blurred faces and license plates
     """
-    if _face_model is None:
-        logger.debug("Face model not loaded, skipping anonymization")
-        return frame
-    
     anonymized_frame = frame.copy()
     
     try:
-        # Stage 1: Face Detection
+        # Stage 1: Face Detection (using YOLO or Haar Cascade fallback)
         anonymized_frame = _blur_faces(anonymized_frame)
         
         # Stage 2: License Plate Detection
@@ -63,35 +80,59 @@ def _blur_faces(frame: np.ndarray) -> np.ndarray:
     """
     Detect and blur faces in the frame.
     
+    Uses YOLO face model if available, otherwise falls back to
+    OpenCV Haar Cascade for face detection.
+    
     Args:
         frame: Input BGR image
         
     Returns:
         Frame with blurred faces
     """
-    if _face_model is None:
-        return frame
+    # Try YOLO face model first (more accurate)
+    if _face_model is not None:
+        try:
+            face_results = _face_model(frame, verbose=False)
+            
+            for result in face_results:
+                for box in result.boxes:
+                    xyxy = box.xyxy[0].cpu().numpy().astype(int)
+                    x1, y1, x2, y2 = xyxy
+                    
+                    # Ensure coordinates are within frame bounds
+                    x1, y1 = max(0, x1), max(0, y1)
+                    x2, y2 = min(frame.shape[1], x2), min(frame.shape[0], y2)
+                    
+                    # Apply Gaussian blur to face region
+                    if x2 > x1 and y2 > y1:
+                        roi = frame[y1:y2, x1:x2]
+                        blurred_roi = cv2.GaussianBlur(roi, (99, 99), 30)
+                        frame[y1:y2, x1:x2] = blurred_roi
+            
+            return frame
+        except Exception as e:
+            logger.warning(f"YOLO face detection error: {e}")
     
-    try:
-        face_results = _face_model(frame, verbose=False)
-        
-        for result in face_results:
-            for box in result.boxes:
-                xyxy = box.xyxy[0].cpu().numpy().astype(int)
-                x1, y1, x2, y2 = xyxy
-                
-                # Ensure coordinates are within frame bounds
-                x1, y1 = max(0, x1), max(0, y1)
-                x2, y2 = min(frame.shape[1], x2), min(frame.shape[0], y2)
-                
+    # Fallback to Haar Cascade
+    haar = _get_haar_cascade()
+    if haar is not None:
+        try:
+            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            faces = haar.detectMultiScale(
+                gray, 
+                scaleFactor=1.1, 
+                minNeighbors=5, 
+                minSize=(30, 30)
+            )
+            
+            for (x, y, w, h) in faces:
                 # Apply Gaussian blur to face region
-                if x2 > x1 and y2 > y1:
-                    roi = frame[y1:y2, x1:x2]
-                    blurred_roi = cv2.GaussianBlur(roi, (99, 99), 30)
-                    frame[y1:y2, x1:x2] = blurred_roi
-    
-    except Exception as e:
-        logger.warning(f"Face detection error: {e}")
+                roi = frame[y:y+h, x:x+w]
+                blurred_roi = cv2.GaussianBlur(roi, (99, 99), 30)
+                frame[y:y+h, x:x+w] = blurred_roi
+                
+        except Exception as e:
+            logger.warning(f"Haar Cascade face detection error: {e}")
     
     return frame
 
@@ -158,20 +199,25 @@ def get_privacy_metrics(frame: np.ndarray) -> dict:
     Returns:
         Dictionary with detection counts and processing info
     """
+    # Anonymization is always enabled (using YOLO or Haar Cascade)
+    haar = _get_haar_cascade()
     metrics = {
         "faces_detected": 0,
         "plates_detected": 0,
-        "anonymization_enabled": _face_model is not None
+        "anonymization_enabled": _face_model is not None or haar is not None,
+        "method": "yolo" if _face_model is not None else ("haar" if haar is not None else "none")
     }
     
-    if _face_model is None:
-        return metrics
-    
     try:
-        # Count faces
-        face_results = _face_model(frame, verbose=False)
-        for result in face_results:
-            metrics["faces_detected"] += len(result.boxes)
+        # Count faces using YOLO or Haar Cascade
+        if _face_model is not None:
+            face_results = _face_model(frame, verbose=False)
+            for result in face_results:
+                metrics["faces_detected"] += len(result.boxes)
+        elif haar is not None:
+            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            faces = haar.detectMultiScale(gray, 1.1, 5, minSize=(30, 30))
+            metrics["faces_detected"] = len(faces)
         
         # Count potential plates (rough estimate)
         hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
@@ -194,3 +240,4 @@ def get_privacy_metrics(frame: np.ndarray) -> dict:
         logger.warning(f"Error getting privacy metrics: {e}")
     
     return metrics
+

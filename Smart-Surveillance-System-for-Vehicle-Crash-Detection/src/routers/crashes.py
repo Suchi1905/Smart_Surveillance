@@ -8,8 +8,8 @@ from sqlalchemy import func
 from datetime import datetime, timedelta
 from typing import List, Optional
 
-from ..database import get_db, CrashEvent
-from ..schemas import (
+from database import get_db, CrashEvent
+from schemas import (
     CrashEventCreate, 
     CrashEventResponse, 
     CrashEventListResponse,

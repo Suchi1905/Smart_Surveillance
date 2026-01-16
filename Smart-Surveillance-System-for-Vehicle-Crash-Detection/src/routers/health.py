@@ -4,7 +4,7 @@ Health check router for FastAPI.
 
 from fastapi import APIRouter
 from datetime import datetime
-from ..schemas import HealthResponse
+from schemas import HealthResponse
 
 router = APIRouter(tags=["Health"])
 

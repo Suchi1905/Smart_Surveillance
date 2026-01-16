@@ -14,7 +14,7 @@ import time
 
 from .severity_triage import SeverityTriageSystem, SeverityResult
 from .anonymization import anonymize_frame
-from ..config import get_settings
+from config import get_settings
 
 logger = logging.getLogger(__name__)
 

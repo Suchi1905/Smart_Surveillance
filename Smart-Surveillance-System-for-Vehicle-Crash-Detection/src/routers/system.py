@@ -3,8 +3,8 @@ System status router for FastAPI.
 """
 
 from fastapi import APIRouter
-from ..schemas import SystemStatusResponse, MLServiceStatus, DatabaseStatus, ConfigResponse
-from ..config import get_settings
+from schemas import SystemStatusResponse, MLServiceStatus, DatabaseStatus, ConfigResponse
+from config import get_settings
 
 router = APIRouter(prefix="/api/v1/system", tags=["System"])
 
@@ -32,6 +32,7 @@ async def get_system_status():
     Get comprehensive system status.
     
     Returns status of ML service, database, triage, and anonymization.
+    Anonymization is always enabled (using YOLO face model or Haar Cascade fallback).
     """
     return SystemStatusResponse(
         ml_service=MLServiceStatus(
@@ -40,7 +41,7 @@ async def get_system_status():
         ),
         database=DatabaseStatus(connected=_db_connected),
         triage=True,
-        anonymization=_face_model_loaded
+        anonymization=True  # Always enabled - uses Haar Cascade fallback if no YOLO face model
     )
 
 

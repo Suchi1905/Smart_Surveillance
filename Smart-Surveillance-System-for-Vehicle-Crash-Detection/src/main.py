@@ -14,14 +14,14 @@ import logging
 import os
 from pathlib import Path
 
-from .config import get_settings
-from .database import init_db
-from .routers import health_router, system_router, crashes_router, video_router, websocket_router, analytics_router
-from .routers.health import set_model_status
-from .routers.system import set_system_status
-from .routers.video import set_frame_generator, set_detection_service
-from .services.detection import DetectionService
-from .services.telegram import send_telegram_alert
+from config import get_settings
+from database import init_db
+from routers import health_router, system_router, crashes_router, video_router, websocket_router, analytics_router
+from routers.health import set_model_status
+from routers.system import set_system_status
+from routers.video import set_frame_generator, set_detection_service
+from services.detection import DetectionService
+from services.telegram import send_telegram_alert
 
 # Configure logging
 logging.basicConfig(
@@ -71,7 +71,7 @@ async def lifespan(app: FastAPI):
     set_detection_service(detection_service)
     
     # Set alert callback with WebSocket notification
-    from .routers.websocket import get_ws_manager
+    from routers.websocket import get_ws_manager
     import asyncio
     
     def alert_callback_wrapper(confidence, frame, severity_info=None):
@@ -190,7 +190,7 @@ if frontend_build.exists():
 @app.get("/api/status")
 async def legacy_status():
     """Legacy status endpoint for backward compatibility."""
-    from .routers.system import get_system_status
+    from routers.system import get_system_status
     status = await get_system_status()
     return {
         "detection": status.ml_service.available,
@@ -203,7 +203,7 @@ async def legacy_status():
 @app.get("/api/system/status")
 async def legacy_system_status():
     """Legacy system status endpoint."""
-    from .routers.system import get_system_status
+    from routers.system import get_system_status
     status = await get_system_status()
     return {
         "ml_service": {
@@ -219,15 +219,15 @@ async def legacy_system_status():
 @app.get("/api/config")
 async def legacy_config():
     """Legacy config endpoint."""
-    from .routers.system import get_config
+    from routers.system import get_config
     return await get_config()
 
 
 @app.get("/api/crashes/recent/{hours}")
 async def legacy_crashes_recent(hours: int):
     """Legacy crashes endpoint."""
-    from .routers.crashes import list_crashes
-    from .database import SessionLocal
+    from routers.crashes import list_crashes
+    from database import SessionLocal
     db = SessionLocal()
     try:
         result = await list_crashes(skip=0, limit=50, hours=hours, db=db)
