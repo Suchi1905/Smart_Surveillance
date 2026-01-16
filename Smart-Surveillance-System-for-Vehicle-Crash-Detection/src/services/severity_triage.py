@@ -246,16 +246,24 @@ class SeverityTriageSystem:
         avg_iou = np.mean(iou_values) if iou_values else 0.0
         
         # Severity Index: High IoU + Sudden velocity drop = Severe crash
+        # BUT require minimum prior velocity (object must have been moving first)
         severity_index = 0.0
         severity_category = "Monitoring"
         
-        if avg_iou > self.iou_threshold and velocity_drop_ratio > 0.7:
+        # Minimum velocity required before considering it a "crash" (object must have been moving)
+        min_prior_velocity = 5.0  # pixels per frame
+        
+        # Check if object was ever moving (to distinguish from always-stationary objects)
+        was_moving = avg_velocity > min_prior_velocity
+        is_now_slow = current_velocity < min_prior_velocity
+        
+        if was_moving and is_now_slow and avg_iou > self.iou_threshold and velocity_drop_ratio > 0.7:
             severity_index = min(1.0, avg_iou * velocity_drop_ratio)
             severity_category = "Severe"
-        elif avg_iou > 0.2 and velocity_drop_ratio > 0.5:
+        elif was_moving and avg_iou > 0.2 and velocity_drop_ratio > 0.5:
             severity_index = 0.5
             severity_category = "Moderate"
-        elif velocity_drop_ratio > 0.3:
+        elif was_moving and velocity_drop_ratio > 0.3:
             severity_index = 0.3
             severity_category = "Mild"
         
@@ -282,17 +290,26 @@ class SeverityTriageSystem:
             track_id = self.assign_track_id(box, frame_number)
             self.update_track(track_id, box, frame_number, cls_name, conf)
             
-            # Calculate severity if accident detected
-            if 'accident' in cls_name.lower() or cls_name.lower() in ['severe', 'moderate', 'mild']:
-                severity_index, severity_category = self.calculate_severity_index(track_id)
-                severity_results.append(SeverityResult(
-                    track_id=track_id,
-                    severity_index=severity_index,
-                    severity_category=severity_category,
-                    class_name=cls_name,
-                    confidence=conf,
-                    box=box
-                ))
+            # Calculate severity ONLY if class indicates an accident/crash
+            # Filter: must contain 'accident', 'crash', 'collision' or be severity labels
+            cls_lower = cls_name.lower()
+            is_crash_class = any(keyword in cls_lower for keyword in [
+                'accident', 'crash', 'collision', 'severe', 'moderate', 'mild', 'wreck', 'impact'
+            ])
+            
+            # Skip non-crash detections (like 'person', 'car', 'truck' from COCO)
+            if not is_crash_class:
+                continue
+            
+            severity_index, severity_category = self.calculate_severity_index(track_id)
+            severity_results.append(SeverityResult(
+                track_id=track_id,
+                severity_index=severity_index,
+                severity_category=severity_category,
+                class_name=cls_name,
+                confidence=conf,
+                box=box
+            ))
         
         return severity_results
     

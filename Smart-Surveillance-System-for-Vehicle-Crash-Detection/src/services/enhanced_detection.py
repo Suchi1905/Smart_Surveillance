@@ -25,7 +25,10 @@ from .tracker import ByteTracker, Track
 from .speed_estimator import SpeedEstimator, SpeedMeasurement
 from .collision import CollisionPredictor, CollisionRisk
 from .behavior import BehaviorAnalyzer, BehaviorAlert
-from config import get_settings
+try:
+    from ..config import get_settings
+except ImportError:
+    from config import get_settings
 
 logger = logging.getLogger(__name__)
 

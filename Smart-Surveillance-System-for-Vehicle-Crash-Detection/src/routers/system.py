@@ -3,8 +3,12 @@ System status router for FastAPI.
 """
 
 from fastapi import APIRouter
-from schemas import SystemStatusResponse, MLServiceStatus, DatabaseStatus, ConfigResponse
-from config import get_settings
+try:
+    from ..schemas import SystemStatusResponse, MLServiceStatus, DatabaseStatus, ConfigResponse
+    from ..config import get_settings
+except ImportError:
+    from schemas import SystemStatusResponse, MLServiceStatus, DatabaseStatus, ConfigResponse
+    from config import get_settings
 
 router = APIRouter(prefix="/api/v1/system", tags=["System"])
 

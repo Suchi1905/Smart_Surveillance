@@ -5,7 +5,6 @@ import AnalyticsWidget from "./components/AnalyticsWidget";
 import IncidentsView from "./components/IncidentsView";
 import SettingsView from "./components/SettingsView";
 import FeaturesGuide from "./components/FeaturesGuide";
-import DetectionLegend from "./components/DetectionLegend";
 import LiveStatusPanel from "./components/LiveStatusPanel";
 
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
@@ -275,8 +274,6 @@ function App() {
                         className="live-feed"
                       />
                       <div className="camera-card__feed-overlay" />
-                      {/* Detection Legend Overlay */}
-                      <DetectionLegend isVisible={streaming} />
                     </div>
                   </div>
                   <div className="camera-card__caption">

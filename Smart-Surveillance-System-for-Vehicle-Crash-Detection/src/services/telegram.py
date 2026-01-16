@@ -12,7 +12,10 @@ from datetime import datetime
 from typing import Optional
 from pathlib import Path
 
-from config import get_settings
+try:
+    from ..config import get_settings
+except ImportError:
+    from config import get_settings
 
 logger = logging.getLogger(__name__)
 

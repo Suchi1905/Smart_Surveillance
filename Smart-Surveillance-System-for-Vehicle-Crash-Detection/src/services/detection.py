@@ -14,7 +14,10 @@ import time
 
 from .severity_triage import SeverityTriageSystem, SeverityResult
 from .anonymization import anonymize_frame
-from config import get_settings
+try:
+    from ..config import get_settings
+except ImportError:
+    from config import get_settings
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +38,8 @@ class DetectionService:
     
     def __init__(self):
         """Initialize the detection service."""
-        self.model = None
+        self.crash_model = None  # best.pt - for crash detection
+        self.object_model = None  # yolov8n.pt - for general object detection (person, car, etc.)
         self.face_model = None
         self.triage_system = SeverityTriageSystem()
         self.settings = get_settings()
@@ -43,6 +47,8 @@ class DetectionService:
         self.alert_sent = False
         self._alert_callback = None
         self._stop_event = threading.Event()
+        # For backwards compatibility
+        self.model = None
     
     def stop_stream(self):
         """Signal the frame generator to stop and release resources."""
@@ -51,30 +57,43 @@ class DetectionService:
 
     def load_models(self) -> Tuple[bool, bool]:
         """
-        Load YOLO detection and face models.
+        Load YOLO detection models.
+        
+        Loads two models:
+        - best.pt: Custom crash detection model
+        - yolov8n.pt: General object detection (person, car, etc.)
         
         Returns:
-            Tuple of (detection_model_loaded, face_model_loaded)
+            Tuple of (crash_model_loaded, object_model_loaded)
         """
-        detection_loaded = False
+        crash_loaded = False
+        object_loaded = False
         face_loaded = False
         
         try:
             from ultralytics import YOLO
             
-            # Load detection model
+            # Load crash detection model (best.pt)
             model_path = self.settings.find_model_path()
             if model_path:
-                self.model = YOLO(model_path)
-                logger.info(f"Detection model loaded from {model_path}")
-                detection_loaded = True
+                self.crash_model = YOLO(model_path)
+                self.model = self.crash_model  # For backwards compatibility
+                logger.info(f"Crash detection model loaded from {model_path}")
+                crash_loaded = True
             else:
-                # Fallback to default YOLOv8n
-                logger.warning("Custom model not found, using YOLOv8n")
-                self.model = YOLO("yolov8n.pt")
-                detection_loaded = True
+                logger.warning("Crash detection model (best.pt) not found")
         except Exception as e:
-            logger.error(f"Failed to load detection model: {e}")
+            logger.error(f"Failed to load crash detection model: {e}")
+        
+        try:
+            from ultralytics import YOLO
+            
+            # Load general object detection model (yolov8n.pt)
+            self.object_model = YOLO("yolov8n.pt")
+            logger.info("Object detection model (yolov8n.pt) loaded")
+            object_loaded = True
+        except Exception as e:
+            logger.error(f"Failed to load object detection model: {e}")
         
         try:
             from ultralytics import YOLO
@@ -90,7 +109,43 @@ class DetectionService:
         except Exception as e:
             logger.warning(f"Face model not loaded: {e}")
         
-        return detection_loaded, face_loaded
+        return crash_loaded or object_loaded, face_loaded
+    
+    def _calculate_iou(
+        self, 
+        box1: Tuple[int, int, int, int], 
+        box2: Tuple[int, int, int, int]
+    ) -> float:
+        """
+        Calculate Intersection over Union between two bounding boxes.
+        
+        Args:
+            box1: First bounding box (x1, y1, x2, y2)
+            box2: Second bounding box (x1, y1, x2, y2)
+            
+        Returns:
+            IoU value between 0.0 and 1.0
+        """
+        x1_min, y1_min, x1_max, y1_max = box1
+        x2_min, y2_min, x2_max, y2_max = box2
+        
+        # Calculate intersection area
+        inter_x_min = max(x1_min, x2_min)
+        inter_y_min = max(y1_min, y2_min)
+        inter_x_max = min(x1_max, x2_max)
+        inter_y_max = min(y1_max, y2_max)
+        
+        if inter_x_max < inter_x_min or inter_y_max < inter_y_min:
+            return 0.0
+        
+        inter_area = (inter_x_max - inter_x_min) * (inter_y_max - inter_y_min)
+        
+        # Calculate union area
+        box1_area = (x1_max - x1_min) * (y1_max - y1_min)
+        box2_area = (x2_max - x2_min) * (y2_max - y2_min)
+        union_area = box1_area + box2_area - inter_area
+        
+        return inter_area / union_area if union_area > 0 else 0.0
     
     def set_alert_callback(self, callback):
         """Set callback function for crash alerts."""
@@ -127,9 +182,9 @@ class DetectionService:
                 self.frame_counter += 1
                 
                 # Process frame
-                if self.model is None:
+                if self.crash_model is None and self.object_model is None:
                     frame = self._draw_error_message(
-                        frame, "Model not loaded! Please train a model first"
+                        frame, "No models loaded! Please check model files."
                     )
                 else:
                     frame = self._process_frame(frame, conf_threshold)
@@ -146,7 +201,9 @@ class DetectionService:
         conf_threshold: float
     ) -> np.ndarray:
         """
-        Process a single frame through detection and severity analysis.
+        Process a single frame through dual-model detection and severity analysis.
+        
+        Uses yolov8n.pt for general objects (person, car) and best.pt for crashes.
         
         Args:
             frame: Input BGR frame
@@ -155,44 +212,109 @@ class DetectionService:
         Returns:
             Annotated frame
         """
-        results = self.model(frame, verbose=False)
+        crash_detections = []  # For severity triage
+        person_boxes = []  # Track person detections to filter false positives
         
-        # Collect detections for triage analysis
-        detections = []
-        
-        for result in results:
-            for box in result.boxes:
-                conf = float(box.conf[0])
-                cls = int(box.cls[0])
-                xyxy = box.xyxy[0].cpu().numpy().astype(int)
-                cls_name = self.model.names[cls]
-                
-                if conf > conf_threshold:
-                    detections.append((tuple(xyxy), conf, cls_name))
+        # === Run general object detection (yolov8n.pt) ===
+        if self.object_model is not None:
+            results = self.object_model(frame, verbose=False)
+            
+            for result in results:
+                for box in result.boxes:
+                    conf = float(box.conf[0])
+                    cls = int(box.cls[0])
+                    xyxy = box.xyxy[0].cpu().numpy().astype(int)
+                    cls_name = self.object_model.names[cls]
                     
-                    # Draw detection box
-                    label = f"{cls_name} {conf:.2f}"
-                    cv2.rectangle(
-                        frame, 
-                        (xyxy[0], xyxy[1]), 
-                        (xyxy[2], xyxy[3]), 
-                        (0, 0, 255), 
-                        2
-                    )
-                    cv2.putText(
-                        frame, 
-                        label, 
-                        (xyxy[0], xyxy[1] - 10),
-                        cv2.FONT_HERSHEY_SIMPLEX, 
-                        0.6, 
-                        (0, 255, 0), 
-                        2
-                    )
+                    if conf > conf_threshold:
+                        # Collect person boxes for filtering false crash detections
+                        if cls_name.lower() == 'person':
+                            person_boxes.append(tuple(xyxy))
+                        
+                        # Draw general object detection box (GREEN)
+                        label = f"{cls_name} {conf:.2f}"
+                        cv2.rectangle(
+                            frame, 
+                            (xyxy[0], xyxy[1]), 
+                            (xyxy[2], xyxy[3]), 
+                            (0, 255, 0),  # Green for general objects
+                            2
+                        )
+                        cv2.putText(
+                            frame, 
+                            label, 
+                            (xyxy[0], xyxy[1] - 10),
+                            cv2.FONT_HERSHEY_SIMPLEX, 
+                            0.6, 
+                            (0, 255, 0),  # Green text
+                            2
+                        )
         
-        # Perform severity triage analysis
-        if detections:
+        # === Run crash detection (best.pt) ===
+        # Only process actual crash/accident classes, not vehicles
+        CRASH_CLASSES = {'accident', 'mild', 'moderate', 'severe', 'crash', 'collision', 'wreck', 'impact'}
+        SKIP_CLASSES = {'no accident', 'car', 'motor cycle', 'motorcycle', 'truck', 'bus', 'person'}
+        
+        if self.crash_model is not None:
+            results = self.crash_model(frame, verbose=False)
+            
+            for result in results:
+                for box in result.boxes:
+                    conf = float(box.conf[0])
+                    cls = int(box.cls[0])
+                    xyxy = box.xyxy[0].cpu().numpy().astype(int)
+                    cls_name = self.crash_model.names[cls]
+                    cls_lower = cls_name.lower()
+                    
+                    # Skip non-crash classes (vehicles without crashes, "No Accident")
+                    if cls_lower in SKIP_CLASSES:
+                        continue
+                    
+                    # Only process if it's an actual crash class
+                    is_crash = any(crash_word in cls_lower for crash_word in CRASH_CLASSES)
+                    
+                    if conf > conf_threshold and is_crash:
+                        crash_box = tuple(xyxy)
+                        
+                        # === FILTER: Check if crash overlaps with person boxes ===
+                        # If crash detection significantly overlaps with person(s), it's likely a false positive
+                        overlaps_with_person = False
+                        for person_box in person_boxes:
+                            iou = self._calculate_iou(crash_box, person_box)
+                            if iou > 0.4:  # 40% overlap threshold
+                                overlaps_with_person = True
+                                logger.debug(f"Filtered false crash detection overlapping with person (IoU: {iou:.2f})")
+                                break
+                        
+                        # Skip this crash detection if it overlaps with people
+                        if overlaps_with_person:
+                            continue
+                        
+                        crash_detections.append((crash_box, conf, cls_name))
+                        
+                        # Draw crash detection box (RED)
+                        label = f"CRASH: {cls_name} {conf:.2f}"
+                        cv2.rectangle(
+                            frame, 
+                            (xyxy[0], xyxy[1]), 
+                            (xyxy[2], xyxy[3]), 
+                            (0, 0, 255),  # Red for crashes
+                            3  # Thicker line for crashes
+                        )
+                        cv2.putText(
+                            frame, 
+                            label, 
+                            (xyxy[0], xyxy[1] - 10),
+                            cv2.FONT_HERSHEY_SIMPLEX, 
+                            0.7, 
+                            (0, 0, 255),  # Red text
+                            2
+                        )
+        
+        # Perform severity triage analysis ONLY on crash detections
+        if crash_detections:
             severity_results = self.triage_system.analyze_accident(
-                detections, self.frame_counter
+                crash_detections, self.frame_counter
             )
             
             # Draw severity information

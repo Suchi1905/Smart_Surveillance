@@ -8,15 +8,26 @@ from sqlalchemy import func
 from datetime import datetime, timedelta
 from typing import List, Optional
 
-from database import get_db, CrashEvent
-from schemas import (
-    CrashEventCreate, 
-    CrashEventResponse, 
-    CrashEventListResponse,
-    CrashStatsResponse,
-    SeverityStats,
-    BoundingBox
-)
+try:
+    from ..database import get_db, CrashEvent
+    from ..schemas import (
+        CrashEventCreate, 
+        CrashEventResponse, 
+        CrashEventListResponse,
+        CrashStatsResponse,
+        SeverityStats,
+        BoundingBox
+    )
+except ImportError:
+    from database import get_db, CrashEvent
+    from schemas import (
+        CrashEventCreate, 
+        CrashEventResponse, 
+        CrashEventListResponse,
+        CrashStatsResponse,
+        SeverityStats,
+        BoundingBox
+    )
 
 router = APIRouter(prefix="/api/v1/crashes", tags=["Crashes"])
 
