@@ -245,25 +245,42 @@ class SeverityTriageSystem:
         
         avg_iou = np.mean(iou_values) if iou_values else 0.0
         
+        # Get the class name and confidence from the most recent detection
+        latest_detection = track_history[-1]
+        class_name = latest_detection.get('class', '').lower()
+        confidence = latest_detection.get('confidence', 0.0)
+        
         # Severity Index: High IoU + Sudden velocity drop = Severe crash
         # BUT require minimum prior velocity (object must have been moving first)
         severity_index = 0.0
         severity_category = "Monitoring"
         
-        # Minimum velocity required before considering it a "crash" (object must have been moving)
-        min_prior_velocity = 5.0  # pixels per frame
+        # Minimum velocity required before considering it a "crash"
+        min_prior_velocity = 2.0  # Lowered for better detection (was 5.0)
         
         # Check if object was ever moving (to distinguish from always-stationary objects)
         was_moving = avg_velocity > min_prior_velocity
         is_now_slow = current_velocity < min_prior_velocity
         
-        if was_moving and is_now_slow and avg_iou > self.iou_threshold and velocity_drop_ratio > 0.7:
+        # === Method 1: Confidence-based severity for crash classes ===
+        # If the model detected 'severe' or 'accident' with high confidence, trust it
+        if class_name in ['severe', 'accident', 'crash', 'collision'] and confidence > 0.7:
+            severity_index = confidence
+            severity_category = "Severe"
+        elif class_name == 'moderate' and confidence > 0.6:
+            severity_index = 0.6
+            severity_category = "Moderate"
+        elif class_name == 'mild' and confidence > 0.5:
+            severity_index = 0.4
+            severity_category = "Mild"
+        # === Method 2: Motion-based severity analysis (fallback) ===
+        elif was_moving and is_now_slow and avg_iou > self.iou_threshold and velocity_drop_ratio > 0.5:
             severity_index = min(1.0, avg_iou * velocity_drop_ratio)
             severity_category = "Severe"
-        elif was_moving and avg_iou > 0.2 and velocity_drop_ratio > 0.5:
+        elif was_moving and avg_iou > 0.2 and velocity_drop_ratio > 0.3:
             severity_index = 0.5
             severity_category = "Moderate"
-        elif was_moving and velocity_drop_ratio > 0.3:
+        elif was_moving and velocity_drop_ratio > 0.2:
             severity_index = 0.3
             severity_category = "Mild"
         

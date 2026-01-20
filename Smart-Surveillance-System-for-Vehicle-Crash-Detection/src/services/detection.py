@@ -156,7 +156,7 @@ class DetectionService:
         conf_threshold: float = 0.6
     ) -> Generator[bytes, None, None]:
         """
-        Generate MJPEG frames with detection overlay.
+        Generate MJPEG frames with detection overlay from webcam.
         
         Args:
             conf_threshold: Confidence threshold for detections
@@ -194,6 +194,273 @@ class DetectionService:
         finally:
             cap.release()
             logger.info("Camera released")
+    
+    def _extract_youtube_url(self, youtube_url: str) -> Optional[str]:
+        """
+        Extract direct stream URL from YouTube using yt-dlp.
+        
+        Uses multiple bypass techniques for age-restricted videos.
+        
+        Args:
+            youtube_url: YouTube video URL
+            
+        Returns:
+            Direct stream URL or None if extraction fails
+        """
+        try:
+            import yt_dlp
+            import re
+            
+            # Extract video ID from URL
+            video_id = None
+            patterns = [
+                r'(?:youtube\.com/watch\?v=|youtu\.be/|youtube\.com/shorts/)([a-zA-Z0-9_-]{11})',
+                r'youtube\.com/embed/([a-zA-Z0-9_-]{11})',
+            ]
+            for pattern in patterns:
+                match = re.search(pattern, youtube_url)
+                if match:
+                    video_id = match.group(1)
+                    break
+            
+            if not video_id:
+                logger.error(f"Could not extract video ID from: {youtube_url}")
+                return None
+            
+            logger.info(f"Extracted video ID: {video_id}")
+            
+            # Method 1: Try with youtube embed bypass (works for many age-restricted)
+            embed_url = f"https://www.youtube.com/embed/{video_id}"
+            
+            ydl_opts = {
+                'format': 'best[height<=720]/best',
+                'quiet': True,
+                'no_warnings': True,
+                'extractor_args': {
+                    'youtube': {
+                        'player_client': ['android', 'web'],  # Android client often bypasses age gate
+                        'skip': ['webpage', 'configs'],
+                    }
+                },
+            }
+            
+            try:
+                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                    info = ydl.extract_info(embed_url, download=False)
+                    stream_url = info.get('url')
+                    if stream_url:
+                        logger.info(f"Extracted YouTube stream URL for: {info.get('title', youtube_url)} (embed method)")
+                        return stream_url
+            except Exception as e:
+                logger.debug(f"Embed method failed: {e}")
+            
+            # Method 2: Try with Android client which often bypasses age restrictions
+            logger.info("Trying Android client method...")
+            ydl_opts = {
+                'format': 'best[height<=720]/best',
+                'quiet': True,
+                'no_warnings': True,
+                'extractor_args': {
+                    'youtube': {
+                        'player_client': ['android_embedded', 'android', 'ios'],
+                    }
+                },
+            }
+            
+            try:
+                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                    info = ydl.extract_info(youtube_url, download=False)
+                    stream_url = info.get('url')
+                    if stream_url:
+                        logger.info(f"Extracted YouTube stream URL for: {info.get('title', youtube_url)} (android method)")
+                        return stream_url
+            except Exception as e:
+                logger.debug(f"Android method failed: {e}")
+            
+            # Method 3: Standard extraction (for non-restricted videos)
+            logger.info("Trying standard extraction...")
+            ydl_opts = {
+                'format': 'best[height<=720]/best',
+                'quiet': True,
+                'no_warnings': True,
+            }
+            
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                info = ydl.extract_info(youtube_url, download=False)
+                stream_url = info.get('url')
+                if stream_url:
+                    logger.info(f"Extracted YouTube stream URL for: {info.get('title', youtube_url)}")
+                    return stream_url
+                    
+        except Exception as e:
+            logger.error(f"Failed to extract YouTube URL: {e}")
+        
+        logger.warning("Could not extract URL. Try a non-age-restricted video.")
+        return None
+    
+    def _download_youtube_video(self, youtube_url: str) -> Optional[str]:
+        """
+        Download YouTube video to local cache for smooth playback.
+        
+        Args:
+            youtube_url: YouTube video URL
+            
+        Returns:
+            Path to downloaded video file or None if download fails
+        """
+        try:
+            import yt_dlp
+            import re
+            import os
+            import hashlib
+            
+            # Create cache directory
+            cache_dir = os.path.join(os.path.dirname(__file__), '..', '..', 'video_cache')
+            os.makedirs(cache_dir, exist_ok=True)
+            
+            # Generate cache filename from URL hash
+            url_hash = hashlib.md5(youtube_url.encode()).hexdigest()[:12]
+            output_template = os.path.join(cache_dir, f'{url_hash}.%(ext)s')
+            
+            # Check if already downloaded
+            for ext in ['mp4', 'webm', 'mkv']:
+                cached_file = os.path.join(cache_dir, f'{url_hash}.{ext}')
+                if os.path.exists(cached_file):
+                    logger.info(f"Using cached video: {cached_file}")
+                    return cached_file
+            
+            logger.info(f"Downloading YouTube video for smooth playback...")
+            
+            # Download options
+            ydl_opts = {
+                'format': 'best[height<=720][ext=mp4]/best[height<=720]/best',
+                'outtmpl': output_template,
+                'quiet': False,
+                'no_warnings': True,
+                'progress_hooks': [lambda d: logger.info(f"Download: {d.get('_percent_str', 'N/A')}") if d['status'] == 'downloading' else None],
+                'extractor_args': {
+                    'youtube': {
+                        'player_client': ['android', 'web'],
+                    }
+                },
+            }
+            
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                info = ydl.extract_info(youtube_url, download=True)
+                # Find the downloaded file
+                if info:
+                    downloaded_file = ydl.prepare_filename(info)
+                    if os.path.exists(downloaded_file):
+                        logger.info(f"Downloaded video to: {downloaded_file}")
+                        return downloaded_file
+                    # Try common extensions
+                    for ext in ['mp4', 'webm', 'mkv']:
+                        test_path = os.path.join(cache_dir, f'{url_hash}.{ext}')
+                        if os.path.exists(test_path):
+                            logger.info(f"Downloaded video to: {test_path}")
+                            return test_path
+                            
+        except Exception as e:
+            logger.error(f"Failed to download YouTube video: {e}")
+        
+        return None
+    
+    def generate_frames_from_url(
+        self, 
+        source_url: str,
+        conf_threshold: float = 0.6
+    ) -> Generator[bytes, None, None]:
+        """
+        Generate MJPEG frames with detection overlay from URL source.
+        
+        For YouTube URLs, downloads the video first for smooth playback.
+        
+        Supports:
+        - YouTube URLs (auto-downloaded for smooth playback)
+        - Direct video file URLs (.mp4, .avi, etc.)
+        - RTSP streams
+        - Local file paths
+        
+        Args:
+            source_url: Video source URL or path
+            conf_threshold: Confidence threshold for detections
+            
+        Yields:
+            MJPEG frame bytes
+        """
+        self._stop_event.clear()
+        
+        # Check if it's a YouTube URL - download for better performance
+        video_path = source_url
+        if 'youtube.com' in source_url or 'youtu.be' in source_url:
+            logger.info(f"Detected YouTube URL: {source_url}")
+            
+            # Show downloading message
+            downloading_frame = self._create_error_frame("Downloading video for smooth playback...")
+            yield self._encode_frame(downloading_frame)
+            
+            # Download the video
+            downloaded_path = self._download_youtube_video(source_url)
+            if downloaded_path:
+                video_path = downloaded_path
+                logger.info(f"Using downloaded video: {video_path}")
+            else:
+                # Fallback to streaming URL
+                logger.warning("Download failed, falling back to stream URL...")
+                extracted_url = self._extract_youtube_url(source_url)
+                if extracted_url:
+                    video_path = extracted_url
+                else:
+                    error_frame = self._create_error_frame("Failed to access YouTube video. Try another URL.")
+                    yield self._encode_frame(error_frame)
+                    return
+        
+        logger.info(f"Opening video source: {video_path[:100]}...")
+        cap = cv2.VideoCapture(video_path)
+        
+        if not cap.isOpened():
+            logger.error(f"Failed to open video source: {source_url}")
+            error_frame = self._create_error_frame("Failed to open video source")
+            yield self._encode_frame(error_frame)
+            return
+        
+        logger.info(f"Video opened successfully")
+        fps = cap.get(cv2.CAP_PROP_FPS) or 30
+        frame_delay = 1.0 / fps
+        total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        logger.info(f"Video FPS: {fps}, Total frames: {total_frames}")
+        
+        try:
+            while not self._stop_event.is_set():
+                success, frame = cap.read()
+                if not success:
+                    logger.info("End of video, looping...")
+                    # For video files, loop back to start
+                    cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+                    success, frame = cap.read()
+                    if not success:
+                        error_frame = self._create_error_frame("Stream ended")
+                        yield self._encode_frame(error_frame)
+                        break
+                
+                self.frame_counter += 1
+                
+                # Process frame
+                if self.crash_model is None and self.object_model is None:
+                    frame = self._draw_error_message(
+                        frame, "No models loaded! Please check model files."
+                    )
+                else:
+                    frame = self._process_frame(frame, conf_threshold)
+                
+                yield self._encode_frame(frame)
+                
+                # Control frame rate for smooth playback
+                time.sleep(frame_delay * 0.5)  # Slightly faster for real-time feel
+                
+        finally:
+            cap.release()
+            logger.info("Video source released")
     
     def _process_frame(
         self, 
@@ -322,10 +589,8 @@ class DetectionService:
                 if sev_result.severity_category != "Monitoring":
                     self._draw_severity_info(frame, sev_result)
                     
-                    # Handle severe accidents
-                    if (sev_result.severity_category == "Severe" 
-                            and not self.alert_sent 
-                            and self._alert_callback):
+                    # Handle severe accidents - send alert for EVERY severe crash
+                    if sev_result.severity_category == "Severe":
                         self._trigger_alert(frame, sev_result)
         
         return frame
@@ -352,25 +617,50 @@ class DetectionService:
         frame: np.ndarray, 
         sev_result: SeverityResult
     ) -> None:
-        """Trigger alert for severe crash."""
+        """Trigger alert for severe crash - sends Telegram notification."""
+        logger.info(f"🚨 SEVERE CRASH DETECTED! Triggering Telegram alert...")
+        
         # Anonymize frame before sending
         anon_frame = anonymize_frame(frame.copy())
         
-        # Send alert in background thread
+        # Send Telegram alert directly
+        try:
+            from .telegram import send_telegram_alert
+            
+            # Send in background thread to not block frame processing
+            def send_alert():
+                result = send_telegram_alert(
+                    confidence=sev_result.confidence,
+                    frame=anon_frame,
+                    severity_info=sev_result
+                )
+                if result:
+                    logger.info("✅ Telegram alert sent successfully!")
+                else:
+                    logger.warning("⚠️ Telegram alert failed to send")
+            
+            threading.Thread(target=send_alert, daemon=True).start()
+            
+        except Exception as e:
+            logger.error(f"Failed to send Telegram alert: {e}")
+        
+        # Also call any additional callback if set
         if self._alert_callback:
             threading.Thread(
                 target=self._alert_callback,
-                args=(sev_result.confidence, anon_frame, sev_result)
+                args=(sev_result.confidence, anon_frame, sev_result),
+                daemon=True
             ).start()
         
         # Set cooldown
         self.alert_sent = True
-        threading.Thread(target=self._reset_alert_flag).start()
+        threading.Thread(target=self._reset_alert_flag, daemon=True).start()
     
     def _reset_alert_flag(self) -> None:
         """Reset alert flag after cooldown."""
         time.sleep(self.settings.alert_cooldown_seconds)
         self.alert_sent = False
+        logger.info("Alert cooldown ended, ready for next alert")
     
     def _create_error_frame(self, message: str) -> np.ndarray:
         """Create an error frame with message."""

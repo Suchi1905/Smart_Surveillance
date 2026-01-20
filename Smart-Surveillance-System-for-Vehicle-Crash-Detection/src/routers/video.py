@@ -68,3 +68,50 @@ async def stop_video_stream():
             return {"status": "error", "message": f"Error stopping stream: {str(e)}"}
             
     return {"status": "error", "message": "Detection service not initialized"}
+
+
+@router.get("/video/url")
+async def video_stream_from_url(
+    source: str = Query(..., description="Video source URL (YouTube, RTSP, or direct video URL)"),
+    conf: float = Query(0.6, ge=0.1, le=1.0, description="Confidence threshold")
+):
+    """
+    MJPEG video stream with real-time crash detection from URL source.
+    
+    Supports:
+    - **YouTube URLs**: Auto-extracts stream URL via yt-dlp
+    - **RTSP streams**: Direct RTSP URLs (rtsp://...)
+    - **Video files**: Direct URLs to .mp4, .avi, etc.
+    
+    Example:
+    - `/video/url?source=https://www.youtube.com/watch?v=VIDEO_ID&conf=0.6`
+    - `/video/url?source=rtsp://camera-ip/stream&conf=0.5`
+    
+    - **source**: Video source URL
+    - **conf**: Confidence threshold for detections (0.1 to 1.0)
+    
+    Returns a multipart MJPEG stream that can be viewed in a browser
+    or embedded in an img tag.
+    """
+    if _detection_service is None:
+        async def error_generator():
+            yield b'--frame\r\nContent-Type: text/plain\r\n\r\nDetection service not initialized\r\n'
+        
+        return StreamingResponse(
+            error_generator(),
+            media_type="multipart/x-mixed-replace; boundary=frame"
+        )
+    
+    if not hasattr(_detection_service, 'generate_frames_from_url'):
+        async def error_generator():
+            yield b'--frame\r\nContent-Type: text/plain\r\n\r\nURL streaming not supported\r\n'
+        
+        return StreamingResponse(
+            error_generator(),
+            media_type="multipart/x-mixed-replace; boundary=frame"
+        )
+    
+    return StreamingResponse(
+        _detection_service.generate_frames_from_url(source, conf),
+        media_type="multipart/x-mixed-replace; boundary=frame"
+    )

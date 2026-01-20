@@ -22,6 +22,10 @@ function App() {
   const [streamStatus, setStreamStatus] = useState("Stream idle");
   const [streaming, setStreaming] = useState(false);
 
+  // Video source state
+  const [streamSource, setStreamSource] = useState('webcam'); // 'webcam' or 'url'
+  const [videoUrl, setVideoUrl] = useState('');
+
   // Navigation state
   const [activeView, setActiveView] = useState('dashboard');
 
@@ -100,18 +104,53 @@ function App() {
     const url = `${API_URL}/video?conf=${confValue}`;
     img.src = url;
     img.style.opacity = 0;
-    setStreamStatus("Connecting to stream...");
+    setStreamStatus("Connecting to webcam...");
     setStreaming(true);
 
     img.onload = () => {
       img.style.opacity = 1;
-      setStreamStatus("Live stream active");
+      setStreamStatus("Live webcam stream active");
     };
 
     img.onerror = () => {
-      setStreamStatus("Error loading stream");
+      setStreamStatus("Error loading webcam stream");
       setStreaming(false);
     };
+  };
+
+  const startUrlStream = (confValue = conf) => {
+    const img = liveFeedRef.current;
+    if (!img) return;
+
+    if (!videoUrl.trim()) {
+      setStreamStatus("Please enter a video URL");
+      return;
+    }
+
+    const encodedUrl = encodeURIComponent(videoUrl.trim());
+    const url = `${API_URL}/video/url?source=${encodedUrl}&conf=${confValue}`;
+    img.src = url;
+    img.style.opacity = 0;
+    setStreamStatus("Connecting to video URL...");
+    setStreaming(true);
+
+    img.onload = () => {
+      img.style.opacity = 1;
+      setStreamStatus("URL stream active - running detection");
+    };
+
+    img.onerror = () => {
+      setStreamStatus("Error loading URL stream");
+      setStreaming(false);
+    };
+  };
+
+  const handleStartStream = () => {
+    if (streamSource === 'webcam') {
+      startStream(conf);
+    } else {
+      startUrlStream(conf);
+    }
   };
 
   const stopStream = async () => {
@@ -223,6 +262,39 @@ function App() {
 
                 <div className="camera-card__body">
                   <div className="camera-card__controls">
+                    {/* Source Selector */}
+                    <label className="field">
+                      <span className="field__label">Video Source</span>
+                      <div className="field__input-row">
+                        <select
+                          value={streamSource}
+                          onChange={(e) => setStreamSource(e.target.value)}
+                          className="field__select"
+                          disabled={streaming}
+                        >
+                          <option value="webcam">📷 Webcam</option>
+                          <option value="url">🔗 YouTube / Video URL</option>
+                        </select>
+                      </div>
+                    </label>
+
+                    {/* URL Input - only show when URL source selected */}
+                    {streamSource === 'url' && (
+                      <label className="field">
+                        <span className="field__label">Video URL</span>
+                        <div className="field__input-row">
+                          <input
+                            type="text"
+                            value={videoUrl}
+                            onChange={(e) => setVideoUrl(e.target.value)}
+                            placeholder="https://www.youtube.com/watch?v=... or RTSP URL"
+                            className="field__url-input"
+                            disabled={streaming}
+                          />
+                        </div>
+                      </label>
+                    )}
+
                     <label className="field">
                       <span className="field__label">Confidence Threshold</span>
                       <div className="field__input-row">
@@ -242,10 +314,10 @@ function App() {
                       <button
                         type="button"
                         className="btn btn--primary"
-                        onClick={() => startStream(conf)}
+                        onClick={handleStartStream}
                         disabled={streaming}
                       >
-                        Start Detection
+                        {streamSource === 'webcam' ? '📷 Start Webcam' : '▶️ Start URL Stream'}
                       </button>
                       <button
                         type="button"
@@ -259,8 +331,10 @@ function App() {
 
                     <div className="meta-row">
                       <span className="meta-row__item">
-                        Stream URL:
-                        <code>{`${API_URL}/video?conf=${conf.toFixed(1)}`}</code>
+                        {streamSource === 'webcam'
+                          ? <>Stream URL: <code>{`${API_URL}/video?conf=${conf.toFixed(1)}`}</code></>
+                          : <>Source: <code>{videoUrl || 'No URL entered'}</code></>
+                        }
                       </span>
                       <span className="meta-row__item">{streamStatus}</span>
                     </div>
