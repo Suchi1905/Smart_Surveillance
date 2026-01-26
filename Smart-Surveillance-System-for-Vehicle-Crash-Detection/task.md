@@ -21,11 +21,11 @@
   - [x] Add risk visualization overlay
 
 ## Phase 2: Prediction
-- [ ] **Pre-Accident Behavior Enhancement**
-  - [ ] Add time-series pattern analysis
-  - [ ] Implement behavior sequence modeling
-  - [ ] Add confidence decay over time
-  - [ ] Extend behavior types
+- [/] **Pre-Accident Behavior Enhancement**
+  - [x] Add time-series pattern analysis
+  - [x] Implement behavior sequence modeling
+  - [x] Add confidence decay over time
+  - [x] Extend behavior types
 
 - [ ] **Trajectory Prediction (LSTM)**
   - [ ] Create `trajectory_predictor.py` service

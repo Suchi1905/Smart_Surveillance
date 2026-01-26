@@ -35,6 +35,10 @@ class BehaviorType(Enum):
     STOP_SIGN_VIOLATION = "stop_sign_violation"
     SPEEDING = "speeding"
     DANGEROUS_OVERTAKE = "dangerous_overtake"
+    # Composite/Sequence Behaviors
+    ROAD_RAGE = "road_rage"            # Aggressive Accel + Tailgating
+    RECKLESS_DRIVING = "reckless_driving" # Speeding + Swerving
+    PANIC_MANEUVER = "panic_maneuver"  # Sudden Brake + Swerving
 
 
 @dataclass
@@ -101,58 +105,162 @@ class BehaviorAnalyzer:
         
         logger.info(f"BehaviorAnalyzer initialized: profile={self.profile.name}, flow={expected_flow_direction}°")
     
+
+    
+    def add_external_alert(self, alert: BehaviorAlert):
+        """Register an alert detected by another service (e.g. Tailgating)."""
+        self._record_alert(alert)
+        # Check sequences immediately after adding external alert
+        seq_alert = self._detect_sequences(alert.track_id)
+        if seq_alert:
+            self._record_alert(seq_alert)
+            return seq_alert
+        return None
+
     def analyze_trajectory(
         self,
         track_id: int,
         trajectory: List[Tuple[float, float]],
-        velocities: List[Tuple[float, float]]
+        velocities: List[Tuple[float, float]],
+        speed_kmh: Optional[float] = None,
+        speed_limit: float = 60.0
     ) -> List[BehaviorAlert]:
         """
         Analyze a trajectory for dangerous behaviors.
-        
-        Args:
-            track_id: Track identifier
-            trajectory: List of (x, y) positions
-            velocities: List of (vx, vy) velocity vectors
-        
-        Returns:
-            List of detected behavior alerts
         """
         alerts = []
         
+        # 1. Check Speeding
+        if speed_kmh is not None:
+            speed_alert = self._analyze_speed(track_id, speed_kmh, speed_limit, trajectory[-1] if trajectory else (0,0))
+            if speed_alert:
+                alerts.append(speed_alert)
+        
         if len(trajectory) < MIN_HISTORY_LENGTH:
+            # Even with short trajectory, we might still return speed alerts
+            for alert in alerts:
+                self._record_alert(alert)
             return alerts
         
-        # Check for swerving
+        # 2. Check trajectory-based behaviors
         swerve_alert = self._detect_swerving(track_id, trajectory)
         if swerve_alert:
             alerts.append(swerve_alert)
         
-        # Check for sudden braking
         brake_alert = self._detect_sudden_brake(track_id, velocities, trajectory[-1])
         if brake_alert:
             alerts.append(brake_alert)
         
-        # Check for aggressive acceleration
         accel_alert = self._detect_aggressive_accel(track_id, velocities, trajectory[-1])
         if accel_alert:
             alerts.append(accel_alert)
         
-        # Check for wrong-way driving
         wrong_way_alert = self._detect_wrong_way(track_id, velocities, trajectory[-1])
         if wrong_way_alert:
             alerts.append(wrong_way_alert)
         
-        # Check for erratic lane changes
         lane_alert = self._detect_erratic_lane_change(track_id, trajectory)
         if lane_alert:
             alerts.append(lane_alert)
         
-        # Store alerts
+        # Record all primary alerts
         for alert in alerts:
             self._record_alert(alert)
+            
+        # 3. Check for Composite Sequences (e.g. Road Rage)
+        seq_alert = self._detect_sequences(track_id)
+        if seq_alert:
+            alerts.append(seq_alert)
+            self._record_alert(seq_alert)
         
         return alerts
+
+    def _analyze_speed(
+        self,
+        track_id: int,
+        speed_kmh: float,
+        limit: float,
+        location: Tuple[float, float]
+    ) -> Optional[BehaviorAlert]:
+        """Check for speeding."""
+        if speed_kmh > limit * 1.2: # 20% buffer
+            ratio = speed_kmh / limit
+            severity = "violation" if ratio > 1.5 else "warning"
+            
+            # Avoid spamming: Check if we recently alerted for speeding for this track
+            recent = self.get_track_alerts(track_id)
+            last_speeding = next((a for a in reversed(recent) if a.behavior_type == BehaviorType.SPEEDING), None)
+            
+            if last_speeding and (time.time() - last_speeding.timestamp < 2.0):
+                return None
+                
+            return BehaviorAlert(
+                track_id=track_id,
+                behavior_type=BehaviorType.SPEEDING,
+                severity=severity,
+                confidence=min(1.0, (ratio - 1.0)),
+                description=f"Speeding: {speed_kmh:.0f} km/h (Limit {limit})",
+                location=location,
+                timestamp=time.time(),
+                evidence={"speed": speed_kmh, "limit": limit}
+            )
+        return None
+
+    def _detect_sequences(self, track_id: int) -> Optional[BehaviorAlert]:
+        """Detect dangerous sequences of behaviors."""
+        alerts = self.get_track_alerts(track_id)
+        if not alerts:
+            return None
+        
+        # Look at last 5 seconds
+        now = time.time()
+        recent = [a for a in alerts if now - a.timestamp < 5.0]
+        types = {a.behavior_type for a in recent}
+        
+        # 1. Road Rage: Aggressive Accel + Tailgating
+        if BehaviorType.AGGRESSIVE_ACCEL in types and BehaviorType.TAILGATING in types:
+            # Check if we haven't already flagged road rage recently
+            if BehaviorType.ROAD_RAGE not in types:
+                return BehaviorAlert(
+                    track_id=track_id,
+                    behavior_type=BehaviorType.ROAD_RAGE,
+                    severity="critical",
+                    confidence=0.9,
+                    description="🔥 ROAD RAGE DETECTED: Aggressive driving + Tailgating",
+                    location=recent[-1].location,
+                    timestamp=now,
+                    evidence={"components": ["aggressive_acceleration", "tailgating"]}
+                )
+
+        # 2. Reckless Driving: Speeding + Swerving/Erratic Lane Change
+        if BehaviorType.SPEEDING in types and (BehaviorType.SWERVING in types or BehaviorType.ERRATIC_LANE_CHANGE in types):
+            if BehaviorType.RECKLESS_DRIVING not in types:
+                return BehaviorAlert(
+                    track_id=track_id,
+                    behavior_type=BehaviorType.RECKLESS_DRIVING,
+                    severity="critical",
+                    confidence=0.85,
+                    description="⚠️ RECKLESS DRIVING: High speed swerving",
+                    location=recent[-1].location,
+                    timestamp=now,
+                    evidence={"components": ["speeding", "swerving"]}
+                )
+                
+        # 3. Panic Maneuver: Sudden Brake + Swerving
+        if BehaviorType.SUDDEN_BRAKE in types and BehaviorType.SWERVING in types:
+             if BehaviorType.PANIC_MANEUVER not in types:
+                return BehaviorAlert(
+                    track_id=track_id,
+                    behavior_type=BehaviorType.PANIC_MANEUVER,
+                    severity="warning",
+                    confidence=0.75,
+                    description="Panic Maneuver Detected",
+                    location=recent[-1].location,
+                    timestamp=now,
+                    evidence={"components": ["sudden_brake", "swerving"]}
+                )
+        
+        return None
     
     def _detect_swerving(
         self,

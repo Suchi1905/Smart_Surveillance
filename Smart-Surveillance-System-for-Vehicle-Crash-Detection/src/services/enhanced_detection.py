@@ -24,7 +24,7 @@ from .severity_triage import SeverityTriageSystem, SeverityResult
 from .tracker import ByteTracker, Track
 from .speed_estimator import SpeedEstimator, SpeedMeasurement
 from .collision import CollisionPredictor, CollisionRisk
-from .behavior import BehaviorAnalyzer, BehaviorAlert
+from .behavior import BehaviorAnalyzer, BehaviorAlert, BehaviorType
 from .traffic_profiles import get_traffic_profile
 from .risk_scorer import RiskScorer
 try:
@@ -270,14 +270,36 @@ class EnhancedDetectionService:
                 self._draw_collision_warning(frame, risk, track_data)
         
         # 5. Behavior Analysis
+        # First, process tailgating (external behavior)
+        tailgating_events = self.collision_predictor.detect_all_tailgating(track_data)
+        for tg in tailgating_events:
+            alert = BehaviorAlert(
+                track_id=tg['follower_id'],
+                behavior_type=BehaviorType.TAILGATING,
+                severity=tg['severity'],
+                confidence=0.9,
+                description=f"Tailgating (Gap: {tg['gap_time_seconds']}s)",
+                location=next((t['center'] for t in track_data if t['id'] == tg['follower_id']), (0,0)),
+                timestamp=time.time(),
+                evidence=tg
+            )
+            # Use add_external_alert which returns sequence alert if any
+            seq_alert = self.behavior_analyzer.add_external_alert(alert)
+            if seq_alert:
+                 self._stats["total_alerts"] += 1
+
         for track in tracks:
             traj = track.get_trajectory()
             vels = [track.velocity]  # Would need velocity history
             
+            # Get speed for this track
+            speed_kmh = next((s.speed_kmh for s in speed_measurements if s.track_id == track.track_id), None)
+            
             alerts = self.behavior_analyzer.analyze_trajectory(
                 track.track_id,
                 traj,
-                vels
+                vels,
+                speed_kmh=speed_kmh
             )
             
             for alert in alerts:
