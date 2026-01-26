@@ -8,17 +8,17 @@
   - [x] Update tests
 
 - [/] **Indian Traffic Adaptation**
-  - [ ] Create `traffic_profiles.py` with US/Indian configurations
-  - [ ] Add adaptive thresholds based on traffic density
-  - [ ] Modify `behavior.py` threshold constants
-  - [ ] Modify `collision.py` TTC/distance constants
+  - [x] Create `traffic_profiles.py` with US/Indian configurations
+  - [x] Add adaptive thresholds based on traffic density
+  - [x] Modify `behavior.py` threshold constants
+  - [x] Modify `collision.py` TTC/distance constants
   - [ ] Add vehicle type classification support
 
-- [ ] **Risk Scoring System**
-  - [ ] Create `risk_scorer.py` service
-  - [ ] Implement composite risk formula
-  - [ ] Integrate with behavior and collision services
-  - [ ] Add risk visualization overlay
+- [/] **Risk Scoring System**
+  - [x] Create `risk_scorer.py` service
+  - [x] Implement composite risk formula
+  - [x] Integrate with behavior and collision services
+  - [x] Add risk visualization overlay
 
 ## Phase 2: Prediction
 - [ ] **Pre-Accident Behavior Enhancement**

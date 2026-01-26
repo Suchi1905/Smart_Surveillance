@@ -11,10 +11,14 @@ Detects various dangerous driving patterns:
 
 import numpy as np
 from dataclasses import dataclass, field
-from typing import List, Tuple, Optional, Dict
+from typing import List, Tuple, Optional, Dict, TYPE_CHECKING
+if TYPE_CHECKING:
+    from .traffic_profiles import TrafficProfile
 from enum import Enum
 import logging
 import time
+
+MIN_HISTORY_LENGTH = 10  # minimum trajectory points
 
 logger = logging.getLogger(__name__)
 
@@ -66,36 +70,36 @@ class BehaviorAnalyzer:
     to identify potentially dangerous behaviors.
     """
     
-    # Thresholds for behavior detection
-    SWERVE_ANGLE_THRESHOLD = 15.0  # degrees change per frame
-    SWERVE_VARIANCE_THRESHOLD = 50.0  # lateral position variance
-    SUDDEN_BRAKE_DECEL = 0.3  # velocity drop ratio
-    AGGRESSIVE_ACCEL = 0.4  # velocity increase ratio
-    MIN_HISTORY_LENGTH = 10  # minimum trajectory points
-    
     def __init__(
         self,
-        expected_flow_direction: float = 0.0,  # degrees (0 = right)
-        lane_width_pixels: float = 100.0,
+        profile: Optional['TrafficProfile'] = None,
+        expected_flow_direction: float = 0.0,
         fps: float = 30.0
     ):
         """
         Initialize behavior analyzer.
         
         Args:
+            profile: Traffic profile configuration (defaults to US if None)
             expected_flow_direction: Expected traffic direction in degrees
-            lane_width_pixels: Approximate lane width in pixels
             fps: Camera frame rate
         """
+        if profile is None:
+            # Lazy import to avoid circular dependency if needed, though type checking might need it
+            from .traffic_profiles import US_PROFILE
+            self.profile = US_PROFILE
+        else:
+            self.profile = profile
+            
         self.expected_flow_direction = expected_flow_direction
-        self.lane_width_pixels = lane_width_pixels
+        self.lane_width_pixels = self.profile.lane_width_pixels
         self.fps = fps
         
         # Track behavior history
         self._alerts_history: List[BehaviorAlert] = []
         self._track_alerts: Dict[int, List[BehaviorAlert]] = {}
         
-        logger.info(f"BehaviorAnalyzer initialized: flow={expected_flow_direction}°")
+        logger.info(f"BehaviorAnalyzer initialized: profile={self.profile.name}, flow={expected_flow_direction}°")
     
     def analyze_trajectory(
         self,
@@ -116,7 +120,7 @@ class BehaviorAnalyzer:
         """
         alerts = []
         
-        if len(trajectory) < self.MIN_HISTORY_LENGTH:
+        if len(trajectory) < MIN_HISTORY_LENGTH:
             return alerts
         
         # Check for swerving
@@ -187,14 +191,14 @@ class BehaviorAnalyzer:
         variance = np.var(deviations)
         max_deviation = np.max(deviations)
         
-        if variance > self.SWERVE_VARIANCE_THRESHOLD or max_deviation > self.lane_width_pixels * 0.5:
+        if variance > self.profile.swerve_variance_threshold or max_deviation > self.lane_width_pixels * 0.5:
             severity = "critical" if max_deviation > self.lane_width_pixels else "warning"
             
             return BehaviorAlert(
                 track_id=track_id,
                 behavior_type=BehaviorType.SWERVING,
                 severity=severity,
-                confidence=min(1.0, variance / self.SWERVE_VARIANCE_THRESHOLD),
+                confidence=min(1.0, variance / self.profile.swerve_variance_threshold),
                 description=f"Swerving detected: {max_deviation:.0f}px deviation",
                 location=recent[-1],
                 timestamp=time.time(),
@@ -227,7 +231,7 @@ class BehaviorAnalyzer:
             if speeds[i-1] > 5:  # Only if was moving
                 decel_ratio = (speeds[i-1] - speeds[i]) / speeds[i-1]
                 
-                if decel_ratio > self.SUDDEN_BRAKE_DECEL:
+                if decel_ratio > self.profile.sudden_brake_ratio:
                     severity = "critical" if decel_ratio > 0.6 else "warning"
                     
                     return BehaviorAlert(
@@ -266,7 +270,7 @@ class BehaviorAnalyzer:
             if speeds[i-1] > 1:  # Was moving
                 accel_ratio = (speeds[i] - speeds[i-1]) / (speeds[i-1] + 0.1)
                 
-                if accel_ratio > self.AGGRESSIVE_ACCEL:
+                if accel_ratio > self.profile.aggressive_accel_ratio:
                     severity = "warning" if accel_ratio < 0.6 else "violation"
                     
                     return BehaviorAlert(
@@ -365,7 +369,7 @@ class BehaviorAnalyzer:
         
         max_angle = np.max(angles)
         
-        if max_angle > self.SWERVE_ANGLE_THRESHOLD:
+        if max_angle > self.profile.swerve_angle_threshold:
             severity = "critical" if max_angle > 30 else "warning"
             
             return BehaviorAlert(

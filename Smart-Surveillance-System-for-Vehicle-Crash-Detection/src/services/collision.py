@@ -9,7 +9,9 @@ Uses trajectory extrapolation and spatial intersection analysis.
 
 import numpy as np
 from dataclasses import dataclass
-from typing import List, Tuple, Optional, Dict
+from typing import List, Tuple, Optional, Dict, TYPE_CHECKING
+if TYPE_CHECKING:
+    from .traffic_profiles import TrafficProfile
 import logging
 import time
 
@@ -70,39 +72,39 @@ class CollisionPredictor:
     to estimate time-to-collision and risk levels.
     """
     
-    # Risk thresholds (seconds)
-    TTC_CRITICAL = 1.0
-    TTC_HIGH = 2.0
-    TTC_MEDIUM = 4.0
-    TTC_LOW = 8.0
-    
-    # Distance thresholds (pixels) - adjust based on camera view
-    COLLISION_DISTANCE = 50.0  # Boxes overlapping/touching
-    NEAR_MISS_DISTANCE = 100.0  # Very close call
-    DANGER_DISTANCE = 200.0  # Getting dangerous
-    
     def __init__(
         self,
+        profile: Optional['TrafficProfile'] = None,
         prediction_horizon: float = 5.0,
-        fps: float = 30.0,
-        safe_following_time: float = 2.0
+        fps: float = 30.0
     ):
         """
         Initialize collision predictor.
         
         Args:
+            profile: Traffic profile configuration (defaults to US if None)
             prediction_horizon: How far ahead to predict (seconds)
             fps: Camera frame rate
-            safe_following_time: Minimum safe following time (seconds)
         """
+        if profile is None:
+            # Lazy import
+            from .traffic_profiles import US_PROFILE
+            self.profile = US_PROFILE
+        else:
+            self.profile = profile
+            
         self.prediction_horizon = prediction_horizon
         self.fps = fps
-        self.safe_following_time = safe_following_time
+        self.safe_following_time = self.profile.min_safe_following_time
+        
+        # Distance thresholds (derived from profile or fixed)
+        self.DANGER_DISTANCE = 200.0
+        self.NEAR_MISS_DISTANCE = 100.0
         
         # Track near-miss history
         self._near_misses: List[NearMissEvent] = []
         
-        logger.info(f"CollisionPredictor initialized with {prediction_horizon}s horizon")
+        logger.info(f"CollisionPredictor initialized with profile={self.profile.name}")
     
     def calculate_ttc(
         self,
@@ -192,13 +194,13 @@ class CollisionPredictor:
         if ttc_seconds is None:
             return "none"
         
-        if ttc_seconds <= self.TTC_CRITICAL:
+        if ttc_seconds <= self.profile.ttc_critical:
             return "critical"
-        elif ttc_seconds <= self.TTC_HIGH:
+        elif ttc_seconds <= self.profile.ttc_high:
             return "high"
-        elif ttc_seconds <= self.TTC_MEDIUM:
+        elif ttc_seconds <= self.profile.ttc_medium:
             return "medium"
-        elif ttc_seconds <= self.TTC_LOW:
+        elif ttc_seconds <= self.profile.ttc_medium * 2:  # Fallback for "low"
             return "low"
         else:
             return "none"

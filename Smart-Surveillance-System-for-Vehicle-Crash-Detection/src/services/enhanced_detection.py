@@ -25,6 +25,8 @@ from .tracker import ByteTracker, Track
 from .speed_estimator import SpeedEstimator, SpeedMeasurement
 from .collision import CollisionPredictor, CollisionRisk
 from .behavior import BehaviorAnalyzer, BehaviorAlert
+from .traffic_profiles import get_traffic_profile
+from .risk_scorer import RiskScorer
 try:
     from ..config import get_settings
 except ImportError:
@@ -54,6 +56,7 @@ class EnhancedDetectionService:
         self.settings = get_settings()
         
         # Core systems
+        # Core systems
         self.triage_system = SeverityTriageSystem()
         self.tracker = ByteTracker(
             track_thresh=0.5,
@@ -61,12 +64,22 @@ class EnhancedDetectionService:
             match_thresh=0.8,
             max_time_lost=30
         )
+        
+        # Load traffic profile
+        self.profile = get_traffic_profile(self.settings.traffic_profile)
+        logger.info(f"Using traffic profile: {self.profile.name}")
+        
         self.speed_estimator = SpeedEstimator(fps=30.0)
-        self.collision_predictor = CollisionPredictor(fps=30.0)
+        self.collision_predictor = CollisionPredictor(
+            profile=self.profile,
+            fps=30.0
+        )
         self.behavior_analyzer = BehaviorAnalyzer(
+            profile=self.profile,
             expected_flow_direction=0.0,  # Configure based on camera
             fps=30.0
         )
+        self.risk_scorer = RiskScorer(profile=self.profile)
         
         # State
         self.frame_counter = 0
@@ -271,7 +284,33 @@ class EnhancedDetectionService:
                 self._draw_behavior_alert(frame, alert)
                 self._stats["total_alerts"] += 1
         
-        # 6. Severity Triage (for crash detections)
+        # 6. Risk Scoring & Visualization
+        current_max_risk = 0.0
+        if self.settings.risk_scoring_enabled:
+            for track in tracks:
+                # Gather data for this track
+                t_id = track.track_id
+                t_speed = next((s.speed_kmh for s in speed_measurements if s.track_id == t_id), 0.0)
+                t_alerts = self.behavior_analyzer.get_track_alerts(t_id)
+                # Recent alerts only
+                t_recent_alerts = [a for a in t_alerts if time.time() - a.timestamp < 5.0]
+                
+                risk_score = self.risk_scorer.calculate_risk(
+                    t_id,
+                    collision_risks,
+                    t_recent_alerts,
+                    t_speed
+                )
+                
+                current_max_risk = max(current_max_risk, risk_score.total_score)
+                
+                # Draw risk bar if risk is significant
+                if risk_score.total_score > 0.2:
+                    self._draw_risk_indicator(frame, track.bbox, risk_score)
+            
+            self._stats["max_risk"] = current_max_risk
+        
+        # 7. Severity Triage (for crash detections)
         if detection_data:
             severity_results = self.triage_system.analyze_accident(
                 detection_data, self.frame_counter
@@ -416,9 +455,42 @@ class EnhancedDetectionService:
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
         cv2.putText(frame, f"Risks: {risk_count}", (20, 70),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
-        cv2.putText(frame, f"Frame: {self.frame_counter}", (20, 90),
+        cv2.putText(frame, f"MaxRisk: {self._stats.get('max_risk', 0.0):.2f}", (20, 90),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
+        cv2.putText(frame, f"Frame: {self.frame_counter}", (20, 110),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
     
+    
+    def _draw_risk_indicator(self, frame: np.ndarray, bbox: np.ndarray, risk: 'RiskScore'):
+        """Draw visual risk indicator above vehicle."""
+        x1, y1, x2, y2 = bbox.astype(int)
+        
+        # Bar dimensions
+        bar_w = x2 - x1
+        bar_h = 6
+        bar_x = x1
+        bar_y = y1 - 25  # Above ID label
+        
+        # Background
+        cv2.rectangle(frame, (bar_x, bar_y), (bar_x + bar_w, bar_y + bar_h), (50, 50, 50), -1)
+        
+        # Foreground (color based on score)
+        score = risk.total_score
+        fill_w = int(bar_w * score)
+        
+        if score > 0.8:
+            color = (0, 0, 255)  # Red
+        elif score > 0.5:
+            color = (0, 165, 255) # Orange
+        else:
+            color = (0, 255, 255) # Yellow
+            
+        cv2.rectangle(frame, (bar_x, bar_y), (bar_x + fill_w, bar_y + bar_h), color, -1)
+        
+        # Text
+        cv2.putText(frame, f"RISK: {score:.2f}", (bar_x + bar_w + 5, bar_y + 5),
+                   cv2.FONT_HERSHEY_SIMPLEX, 0.4, color, 1)
+
     def _trigger_alert(self, frame: np.ndarray, sev_result: SeverityResult):
         """Trigger alert for severe crash."""
         anon_frame = frame.copy()
