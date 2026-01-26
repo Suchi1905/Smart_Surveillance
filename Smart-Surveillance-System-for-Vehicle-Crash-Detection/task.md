@@ -27,11 +27,11 @@
   - [x] Add confidence decay over time
   - [x] Extend behavior types
 
-- [ ] **Trajectory Prediction (LSTM)**
-  - [ ] Create `trajectory_predictor.py` service
-  - [ ] Implement Kalman filter prediction (short-term)
-  - [ ] Add optional LSTM model for long-term prediction
-  - [ ] Integrate with tracker and collision services
+- [/] **Trajectory Prediction (LSTM)**
+  - [x] Create `trajectory_predictor.py` service
+  - [x] Implement Kalman filter prediction (short-term)
+  - [x] Add optional LSTM model for long-term prediction
+  - [x] Integrate with tracker and collision services
 
 ## Phase 3: Hardware Integration
 - [ ] **Raspberry Pi Warning Controller**

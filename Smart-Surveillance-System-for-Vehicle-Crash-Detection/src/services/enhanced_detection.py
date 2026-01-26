@@ -27,6 +27,7 @@ from .collision import CollisionPredictor, CollisionRisk
 from .behavior import BehaviorAnalyzer, BehaviorAlert, BehaviorType
 from .traffic_profiles import get_traffic_profile
 from .risk_scorer import RiskScorer
+from .trajectory_predictor import TrajectoryPredictor
 try:
     from ..config import get_settings
 except ImportError:
@@ -80,6 +81,7 @@ class EnhancedDetectionService:
             fps=30.0
         )
         self.risk_scorer = RiskScorer(profile=self.profile)
+        self.trajectory_predictor = TrajectoryPredictor()
         
         # State
         self.frame_counter = 0
@@ -289,6 +291,18 @@ class EnhancedDetectionService:
                  self._stats["total_alerts"] += 1
 
         for track in tracks:
+            # Update trajectory predictor
+            center = track.get_center()
+            self.trajectory_predictor.update(track.track_id, center, dt=1.0/max(1.0, fps))
+            
+            # Get predicted path (e.g. 30 frames ahead ~ 1 sec)
+            future_path = self.trajectory_predictor.predict_future_path(
+                track.track_id, num_frames=30, dt=1.0/max(1.0, fps)
+            )
+            
+            # Draw predicted path (Cyan dotted line)
+            self._draw_predicted_path(frame, future_path)
+
             traj = track.get_trajectory()
             vels = [track.velocity]  # Would need velocity history
             
@@ -355,6 +369,16 @@ class EnhancedDetectionService:
             self._broadcast_updates(tracks, speed_measurements, collision_risks)
         
         return frame
+    
+    def _draw_predicted_path(self, frame: np.ndarray, path: List[Tuple[float, float]]):
+        """Draw predicted future path."""
+        if len(path) < 2:
+            return
+            
+        # Draw as dotted line
+        pts = np.array(path, np.int32)
+        pts = pts.reshape((-1, 1, 2))
+        cv2.polylines(frame, [pts], False, (255, 255, 0), 2, cv2.LINE_AA) # Cyan
     
     def _draw_trajectory(
         self, 
@@ -579,6 +603,7 @@ class EnhancedDetectionService:
         self.tracker.reset()
         self.speed_estimator.reset()
         self.collision_predictor.reset()
+        self.trajectory_predictor.reset()
         self.behavior_analyzer.reset()
         self.triage_system.reset()
         self.frame_counter = 0
