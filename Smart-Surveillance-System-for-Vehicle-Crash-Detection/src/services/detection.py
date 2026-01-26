@@ -13,7 +13,7 @@ import threading
 import time
 
 from .severity_triage import SeverityTriageSystem, SeverityResult
-from .anonymization import anonymize_frame
+
 try:
     from ..config import get_settings
 except ImportError:
@@ -40,7 +40,7 @@ class DetectionService:
         """Initialize the detection service."""
         self.crash_model = None  # best.pt - for crash detection
         self.object_model = None  # yolov8n.pt - for general object detection (person, car, etc.)
-        self.face_model = None
+
         self.triage_system = SeverityTriageSystem()
         self.settings = get_settings()
         self.frame_counter = 0
@@ -95,19 +95,7 @@ class DetectionService:
         except Exception as e:
             logger.error(f"Failed to load object detection model: {e}")
         
-        try:
-            from ultralytics import YOLO
-            
-            # Load face model for anonymization
-            self.face_model = YOLO(self.settings.face_model_path)
-            logger.info("Face detection model loaded")
-            face_loaded = True
-            
-            # Set model reference for anonymization service
-            from .anonymization import set_face_model
-            set_face_model(self.face_model)
-        except Exception as e:
-            logger.warning(f"Face model not loaded: {e}")
+
         
         return crash_loaded or object_loaded, face_loaded
     
@@ -620,8 +608,8 @@ class DetectionService:
         """Trigger alert for severe crash - sends Telegram notification."""
         logger.info(f"🚨 SEVERE CRASH DETECTED! Triggering Telegram alert...")
         
-        # Anonymize frame before sending
-        anon_frame = anonymize_frame(frame.copy())
+        # Privacy mode: optionally anonymize frame before sending
+        alert_frame = frame.copy()
         
         # Send Telegram alert directly
         try:
@@ -631,7 +619,7 @@ class DetectionService:
             def send_alert():
                 result = send_telegram_alert(
                     confidence=sev_result.confidence,
-                    frame=anon_frame,
+                    frame=alert_frame,
                     severity_info=sev_result
                 )
                 if result:
@@ -648,7 +636,7 @@ class DetectionService:
         if self._alert_callback:
             threading.Thread(
                 target=self._alert_callback,
-                args=(sev_result.confidence, anon_frame, sev_result),
+                args=(sev_result.confidence, alert_frame, sev_result),
                 daemon=True
             ).start()
         

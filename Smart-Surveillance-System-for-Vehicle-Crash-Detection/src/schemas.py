@@ -36,7 +36,7 @@ class SystemStatusResponse(BaseModel):
     ml_service: MLServiceStatus
     database: DatabaseStatus
     triage: bool
-    anonymization: bool
+
 
 
 class ConfigResponse(BaseModel):
@@ -44,10 +44,8 @@ class ConfigResponse(BaseModel):
     model_config = {"protected_namespaces": ()}
     
     model_path: Optional[str]
-    face_model_available: bool
     telegram_configured: bool
     confidence_threshold: float
-    anonymization_enabled: bool
 
 
 # ==================== Crash Event Schemas ====================

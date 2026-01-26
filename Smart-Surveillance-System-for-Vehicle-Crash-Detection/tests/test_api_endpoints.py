@@ -75,7 +75,7 @@ class TestSystemEndpoints:
         assert "ml_service" in data
         assert "database" in data
         assert "triage" in data
-        assert "anonymization" in data
+
     
     def test_legacy_system_status(self, test_client):
         """Test legacy system status endpoint."""
@@ -92,7 +92,7 @@ class TestSystemEndpoints:
         
         data = response.json()
         assert "confidence_threshold" in data
-        assert "anonymization_enabled" in data
+
 
 
 @pytest.mark.integration
@@ -231,7 +231,7 @@ class TestLegacyEndpoints:
         data = response.json()
         assert "detection" in data
         assert "triage" in data
-        assert "anonymization" in data
+
     
     def test_legacy_config(self, test_client):
         """Test legacy /api/config endpoint."""

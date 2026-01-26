@@ -213,7 +213,7 @@ async def legacy_status():
     return {
         "detection": status.ml_service.available,
         "triage": status.triage,
-        "anonymization": status.anonymization,
+        "triage": status.triage,
         "model_loaded": status.ml_service.available
     }
 
@@ -232,8 +232,7 @@ async def legacy_system_status():
             "model_path": status.ml_service.model_path
         },
         "database": {"connected": status.database.connected},
-        "triage": status.triage,
-        "anonymization": status.anonymization
+        "triage": status.triage
     }
 
 

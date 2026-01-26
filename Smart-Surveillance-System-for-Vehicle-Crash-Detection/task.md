@@ -5,7 +5,7 @@
   - [x] Remove `anonymize_frame` import from `detection.py`
   - [x] Remove privacy call in `_trigger_alert` method (line 624)
   - [x] Add config flag to optionally enable/disable anonymization
-  - [ ] Update tests
+  - [x] Update tests
 
 - [/] **Indian Traffic Adaptation**
   - [ ] Create `traffic_profiles.py` with US/Indian configurations

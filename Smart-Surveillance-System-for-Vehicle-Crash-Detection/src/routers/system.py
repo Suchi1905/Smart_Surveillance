@@ -45,7 +45,6 @@ async def get_system_status():
         ),
         database=DatabaseStatus(connected=_db_connected),
         triage=True,
-        anonymization=True  # Always enabled - uses Haar Cascade fallback if no YOLO face model
     )
 
 
@@ -60,8 +59,6 @@ async def get_config():
     
     return ConfigResponse(
         model_path=_model_path,
-        face_model_available=_face_model_loaded,
         telegram_configured=settings.telegram_configured,
-        confidence_threshold=settings.confidence_threshold,
-        anonymization_enabled=settings.anonymization_enabled
+        confidence_threshold=settings.confidence_threshold
     )

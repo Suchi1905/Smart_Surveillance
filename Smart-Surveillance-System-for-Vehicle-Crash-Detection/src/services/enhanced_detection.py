@@ -20,7 +20,7 @@ import asyncio
 from dataclasses import asdict
 
 from .severity_triage import SeverityTriageSystem, SeverityResult
-from .anonymization import anonymize_frame
+
 from .tracker import ByteTracker, Track
 from .speed_estimator import SpeedEstimator, SpeedMeasurement
 from .collision import CollisionPredictor, CollisionRisk
@@ -50,7 +50,7 @@ class EnhancedDetectionService:
     def __init__(self):
         """Initialize the enhanced detection service."""
         self.model = None
-        self.face_model = None
+
         self.settings = get_settings()
         
         # Core systems
@@ -105,17 +105,7 @@ class EnhancedDetectionService:
         except Exception as e:
             logger.error(f"Failed to load detection model: {e}")
         
-        try:
-            from ultralytics import YOLO
-            
-            self.face_model = YOLO(self.settings.face_model_path)
-            logger.info("Face detection model loaded")
-            face_loaded = True
-            
-            from .anonymization import set_face_model
-            set_face_model(self.face_model)
-        except Exception as e:
-            logger.warning(f"Face model not loaded: {e}")
+
         
         return detection_loaded, face_loaded
     
@@ -431,7 +421,7 @@ class EnhancedDetectionService:
     
     def _trigger_alert(self, frame: np.ndarray, sev_result: SeverityResult):
         """Trigger alert for severe crash."""
-        anon_frame = anonymize_frame(frame.copy())
+        anon_frame = frame.copy()
         
         if self._alert_callback:
             threading.Thread(

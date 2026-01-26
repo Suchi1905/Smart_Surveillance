@@ -31,7 +31,6 @@ class Settings:
         
         # Model Configuration - Use best.pt (crash detection model) from root directory
         self.model_path: str = os.getenv("MODEL_PATH", "best.pt")
-        self.face_model_path: str = os.getenv("FACE_MODEL_PATH", "yolov8n-face.pt")
         
         # API Configuration
         self.api_host: str = os.getenv("API_HOST", "0.0.0.0")
@@ -46,11 +45,14 @@ class Settings:
         self.severity_buffer_size: int = int(os.getenv("SEVERITY_BUFFER_SIZE", "10"))
         self.severity_iou_threshold: float = float(os.getenv("SEVERITY_IOU_THRESHOLD", "0.3"))
         
-        # Privacy Settings
-        self.anonymization_enabled: bool = os.getenv("ANONYMIZATION_ENABLED", "true").lower() == "true"
-        
         # Alert Settings
         self.alert_cooldown_seconds: int = int(os.getenv("ALERT_COOLDOWN_SECONDS", "10"))
+        
+        # Traffic Profile Settings (us, indian, european)
+        self.traffic_profile: str = os.getenv("TRAFFIC_PROFILE", "indian")
+        
+        # Risk Scoring Settings
+        self.risk_scoring_enabled: bool = os.getenv("RISK_SCORING_ENABLED", "true").lower() == "true"
     
     @property
     def telegram_configured(self) -> bool:

@@ -6,7 +6,7 @@ collision prediction, and emergency dispatch services.
 """
 
 from .severity_triage import SeverityTriageSystem
-from .anonymization import anonymize_frame
+
 from .detection import DetectionService
 from .telegram import TelegramAlertService
 from .tracker import ByteTracker, Track, TrackState
@@ -18,7 +18,7 @@ from .emergency import EmergencyDispatcher, Incident, IncidentSeverity, AlertCha
 __all__ = [
     # Core
     "SeverityTriageSystem",
-    "anonymize_frame", 
+ 
     "DetectionService",
     "TelegramAlertService",
     # Tracking
