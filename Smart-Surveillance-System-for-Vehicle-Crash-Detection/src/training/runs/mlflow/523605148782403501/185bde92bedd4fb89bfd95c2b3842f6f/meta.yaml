@@ -1,0 +1,15 @@
+artifact_uri: file:///C:/Users/Nikhil Singhvi/OneDrive/Desktop/Conference1/Smart_Surveillance/Smart-Surveillance-System-for-Vehicle-Crash-Detection/src/training/runs/mlflow/523605148782403501/185bde92bedd4fb89bfd95c2b3842f6f/artifacts
+end_time: 1770420592349
+entry_point_name: ''
+experiment_id: '523605148782403501'
+lifecycle_stage: active
+run_id: 185bde92bedd4fb89bfd95c2b3842f6f
+run_name: phase4_yolo
+run_uuid: 185bde92bedd4fb89bfd95c2b3842f6f
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1770400551740
+status: 3
+tags: []
+user_id: Nikhil Singhvi

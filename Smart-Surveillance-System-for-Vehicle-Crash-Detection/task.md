@@ -51,8 +51,29 @@
   - [ ] Implement speed limit enforcement logic
 
 ## Phase 4: Advanced AI (Future)
-- [ ] **YOLO + Vision Transformer Hybrid**
-  - [ ] Research MobileViT/EfficientViT integration
-  - [ ] Implement cross-attention fusion layer
-  - [ ] Train hybrid model
+- [/] **YOLO + Vision Transformer Hybrid**
+  - [x] Create training configuration (`hybrid_config.py`)
+  - [x] Implement dataset loaders (`dataset_loader.py`)
+  - [x] Phase A: Train YOLO backbone on KITTI (mAP50=89.0%, 5.56hrs)
+  - [x] Phase B: Train ViT classifier on CCD (Val Acc=100%, ~2hrs)
+  - [/] Phase C: Train fusion layer
+  - [ ] Phase D: End-to-end fine-tuning
   - [ ] Benchmark performance
+
+
+## Phase 5: Testing
+- [ ] **Integration Testing**
+  - [ ] Test end-to-end system
+  - [ ] Test with real-world data
+  - [ ] Test with different camera angles
+  - [ ] Test with different lighting conditions
+  - [ ] Test with different weather conditions
+  - [ ] Test with different vehicle types
+  - [ ] Test with different vehicle speeds
+  - [ ] Test with different vehicle sizes
+  - [ ] Test with different vehicle colors
+  - [ ] Test with different vehicle orientations
+  - [ ] Test with different vehicle positions
+  - [ ] Test with different vehicle movements
+  - [ ] Test with different vehicle trajectories
+  - [ ] Test with night time conditions

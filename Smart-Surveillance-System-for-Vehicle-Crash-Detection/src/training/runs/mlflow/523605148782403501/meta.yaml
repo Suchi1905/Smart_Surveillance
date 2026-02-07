@@ -1,0 +1,6 @@
+artifact_location: file:///C:/Users/Nikhil Singhvi/OneDrive/Desktop/Conference1/Smart_Surveillance/Smart-Surveillance-System-for-Vehicle-Crash-Detection/src/training/runs/mlflow/523605148782403501
+creation_time: 1770400547549
+experiment_id: '523605148782403501'
+last_update_time: 1770400547549
+lifecycle_stage: active
+name: weights/yolo_training
