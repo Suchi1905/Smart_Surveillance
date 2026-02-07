@@ -158,6 +158,11 @@ class HybridTrainer:
         self.yolo = YOLO(yolo_weights)
         self.yolo_model = self.yolo.model.model
         
+        # Move YOLO to GPU and freeze
+        self.yolo_model = self.yolo_model.to(self.device)
+        for param in self.yolo_model.parameters():
+            param.requires_grad = False
+        
         # Load ViT
         if timm is None:
             raise ImportError("timm required")
@@ -195,17 +200,21 @@ class HybridTrainer:
     
     def extract_yolo_features(self, x: torch.Tensor) -> torch.Tensor:
         """Extract features from YOLO backbone"""
+        # Convert to float32 for YOLO backbone (avoid mixed precision issues)
+        x = x.float()
         with torch.no_grad():
             features = x
             # Run through YOLO backbone (layers 0-9)
             for i, layer in enumerate(self.yolo_model[:10]):
                 features = layer(features)
-        return self.yolo_proj(features)
+        return self.yolo_proj(features.float())
     
     def extract_vit_features(self, x: torch.Tensor) -> torch.Tensor:
         """Extract features from ViT backbone"""
+        # Convert to float32 for ViT backbone
+        x = x.float()
         with torch.no_grad():
-            return self.vit_backbone(x)
+            return self.vit_backbone(x).float()
     
     def train_fusion(
         self,
@@ -354,8 +363,8 @@ def main():
     
     # Create trainer
     trainer = HybridTrainer(
-        yolo_weights=str(config.yolo.save_dir / "phase4_yolo" / "weights" / "best.pt"),
-        vit_weights=str(config.vit.save_dir / "best_vit.pt")
+        yolo_weights=str(config.yolo_weights),
+        vit_weights=str(config.vit_weights)
     )
     
     if args.phase == "C":
