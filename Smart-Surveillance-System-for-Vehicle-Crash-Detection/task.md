@@ -57,7 +57,7 @@
   - [x] Phase A: Train YOLO backbone on KITTI (mAP50=89.0%, 5.56hrs)
   - [x] Phase B: Train ViT classifier on CCD (Val Acc=100%, ~2hrs)
   - [x] Phase C: Train fusion layer (Val Acc=100%, ~1.3hrs)
-  - [~] Phase D: End-to-end fine-tuning (optional - models already at 100%)
+  - [x] Phase D: End-to-end fine-tuning (Val Acc=100%, ~42min)
   - [ ] Benchmark performance and integration
 
 

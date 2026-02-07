@@ -370,8 +370,129 @@ def main():
     if args.phase == "C":
         trainer.train_fusion(train_loader, val_loader, epochs=args.epochs, lr=args.lr)
     else:
-        logger.info("Phase D: End-to-end fine-tuning not yet implemented")
-        # This would unfreeze backbones and train with very low LR
+        # Phase D: End-to-end fine-tuning
+        logger.info("="*60)
+        logger.info("PHASE 4D: END-TO-END FINE-TUNING")
+        logger.info("="*60)
+        logger.info("Unfreezing ViT backbone for fine-tuning...")
+        
+        # Load best fusion weights first
+        fusion_path = Path("../../weights/fusion_training/best_fusion.pt")
+        if fusion_path.exists():
+            checkpoint = torch.load(fusion_path, map_location='cpu')
+            trainer.fusion.load_state_dict(checkpoint['fusion_state_dict'])
+            trainer.yolo_proj.load_state_dict(checkpoint['yolo_proj_state_dict'])
+            logger.info("Loaded best fusion weights")
+        
+        # Unfreeze ViT backbone (keep YOLO frozen for stability)
+        for param in trainer.vit_backbone.parameters():
+            param.requires_grad = True
+        
+        # Create optimizer with different learning rates
+        optimizer = optim.AdamW([
+            {'params': trainer.vit_backbone.parameters(), 'lr': args.lr * 0.01},  # Very low LR for backbone
+            {'params': trainer.fusion.parameters(), 'lr': args.lr * 0.1},
+            {'params': trainer.yolo_proj.parameters(), 'lr': args.lr * 0.1}
+        ], weight_decay=0.01)
+        
+        criterion = nn.CrossEntropyLoss(label_smoothing=0.1)
+        scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs)
+        scaler = GradScaler()
+        
+        save_path = Path("../../weights/e2e_training")
+        save_path.mkdir(parents=True, exist_ok=True)
+        
+        best_acc = 0.0
+        
+        for epoch in range(1, args.epochs + 1):
+            trainer.fusion.train()
+            trainer.yolo_proj.train()
+            trainer.vit_backbone.train()
+            
+            train_loss = 0.0
+            correct = 0
+            total = 0
+            
+            for batch_idx, (yolo_img, vit_img, labels) in enumerate(train_loader):
+                yolo_img = yolo_img.to(trainer.device)
+                vit_img = vit_img.to(trainer.device).float()
+                labels = labels.to(trainer.device)
+                
+                optimizer.zero_grad()
+                
+                with autocast():
+                    # YOLO features (still frozen, no grad)
+                    yolo_feat = trainer.extract_yolo_features(yolo_img)
+                    
+                    # ViT features (now with grad)
+                    vit_feat = trainer.vit_backbone(vit_img)
+                    
+                    logits, _ = trainer.fusion(yolo_feat, vit_feat.float())
+                    loss = criterion(logits, labels)
+                
+                scaler.scale(loss).backward()
+                scaler.step(optimizer)
+                scaler.update()
+                
+                train_loss += loss.item()
+                _, predicted = logits.max(1)
+                total += labels.size(0)
+                correct += predicted.eq(labels).sum().item()
+                
+                if (batch_idx + 1) % 50 == 0:
+                    logger.info(f"  Batch {batch_idx+1}/{len(train_loader)}, Loss: {loss.item():.4f}")
+            
+            train_acc = 100. * correct / total
+            
+            # Validation
+            trainer.fusion.eval()
+            trainer.yolo_proj.eval()
+            trainer.vit_backbone.eval()
+            
+            val_loss = 0.0
+            correct = 0
+            total = 0
+            
+            with torch.no_grad():
+                for yolo_img, vit_img, labels in val_loader:
+                    yolo_img = yolo_img.to(trainer.device)
+                    vit_img = vit_img.to(trainer.device).float()
+                    labels = labels.to(trainer.device)
+                    
+                    yolo_feat = trainer.extract_yolo_features(yolo_img)
+                    vit_feat = trainer.vit_backbone(vit_img)
+                    
+                    logits, _ = trainer.fusion(yolo_feat, vit_feat.float())
+                    loss = criterion(logits, labels)
+                    
+                    val_loss += loss.item()
+                    _, predicted = logits.max(1)
+                    total += labels.size(0)
+                    correct += predicted.eq(labels).sum().item()
+            
+            val_acc = 100. * correct / total
+            scheduler.step()
+            
+            logger.info(f"\nEpoch {epoch}/{args.epochs}")
+            logger.info(f"Train Loss: {train_loss/len(train_loader):.4f}, Train Acc: {train_acc:.2f}%")
+            logger.info(f"Val Loss: {val_loss/len(val_loader):.4f}, Val Acc: {val_acc:.2f}%")
+            
+            # Save best
+            if val_acc > best_acc:
+                best_acc = val_acc
+                torch.save({
+                    'epoch': epoch,
+                    'vit_state_dict': trainer.vit_backbone.state_dict(),
+                    'fusion_state_dict': trainer.fusion.state_dict(),
+                    'yolo_proj_state_dict': trainer.yolo_proj.state_dict(),
+                    'val_acc': val_acc
+                }, save_path / "best_e2e.pt")
+                logger.info(f"Saved best E2E model with Val Acc: {val_acc:.2f}%")
+        
+        logger.info("\n" + "="*60)
+        logger.info("END-TO-END FINE-TUNING COMPLETE!")
+        logger.info(f"Best Validation Accuracy: {best_acc:.2f}%")
+        logger.info("="*60)
 
 
 if __name__ == "__main__":
