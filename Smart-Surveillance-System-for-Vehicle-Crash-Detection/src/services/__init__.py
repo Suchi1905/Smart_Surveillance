@@ -14,6 +14,7 @@ from .speed_estimator import SpeedEstimator, SpeedMeasurement, SpeedZone
 from .collision import CollisionPredictor, CollisionRisk, NearMissEvent
 from .behavior import BehaviorAnalyzer, BehaviorAlert, BehaviorType
 from .emergency import EmergencyDispatcher, Incident, IncidentSeverity, AlertChannel
+from .hybrid_classifier import HybridClassifier, get_hybrid_classifier
 
 __all__ = [
     # Core
@@ -41,5 +42,8 @@ __all__ = [
     "EmergencyDispatcher",
     "Incident",
     "IncidentSeverity",
-    "AlertChannel"
+    "AlertChannel",
+    # Hybrid Classifier
+    "HybridClassifier",
+    "get_hybrid_classifier"
 ]

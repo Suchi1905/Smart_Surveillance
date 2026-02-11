@@ -3,6 +3,7 @@ Enhanced Detection Service with Tracking, Speed, and Behavior Analysis.
 
 This module provides the complete detection pipeline including:
 - YOLO-based vehicle/crash detection
+- YOLO + ViT Hybrid crash classification
 - ByteTrack multi-object tracking
 - Speed estimation
 - Collision prediction
@@ -28,6 +29,7 @@ from .behavior import BehaviorAnalyzer, BehaviorAlert, BehaviorType
 from .traffic_profiles import get_traffic_profile
 from .risk_scorer import RiskScorer
 from .trajectory_predictor import TrajectoryPredictor
+from .hybrid_classifier import HybridClassifier
 try:
     from ..config import get_settings
 except ImportError:
@@ -42,6 +44,7 @@ class EnhancedDetectionService:
     
     Integrates:
     - YOLO detection
+    - YOLO + ViT Hybrid crash classification
     - ByteTrack tracking
     - Speed estimation
     - Collision prediction
@@ -83,11 +86,23 @@ class EnhancedDetectionService:
         self.risk_scorer = RiskScorer(profile=self.profile)
         self.trajectory_predictor = TrajectoryPredictor()
         
+        # Hybrid crash classifier (YOLO + ViT + Fusion)
+        self.hybrid_classifier = None
+        self.use_hybrid = getattr(self.settings, 'use_hybrid_model', True)
+        if self.use_hybrid:
+            try:
+                self.hybrid_classifier = HybridClassifier()
+                logger.info("HybridClassifier initialized (will load on first use)")
+            except Exception as e:
+                logger.warning(f"HybridClassifier not available: {e}")
+                self.use_hybrid = False
+        
         # State
         self.frame_counter = 0
         self.alert_sent = False
         self._alert_callback = None
         self._ws_manager = None
+        self._hybrid_crash_prob = 0.0  # Latest hybrid crash probability
         
         # Statistics
         self._stats = {
@@ -95,7 +110,8 @@ class EnhancedDetectionService:
             "total_detections": 0,
             "total_tracks": 0,
             "total_alerts": 0,
-            "avg_fps": 0.0
+            "avg_fps": 0.0,
+            "hybrid_crash_prob": 0.0
         }
         
         logger.info("EnhancedDetectionService initialized")
@@ -212,6 +228,15 @@ class EnhancedDetectionService:
                     detection_data.append((tuple(xyxy), conf, cls_name))
         
         self._stats["total_detections"] += len(detections)
+        
+        # 1b. Hybrid Crash Classification (YOLO + ViT + Fusion)
+        if self.use_hybrid and self.hybrid_classifier:
+            try:
+                hybrid_result = self.hybrid_classifier.classify(frame)
+                self._hybrid_crash_prob = hybrid_result.get('crash_probability', 0.0)
+                self._stats['hybrid_crash_prob'] = self._hybrid_crash_prob
+            except Exception as e:
+                logger.debug(f"Hybrid classification error: {e}")
         
         # 2. Multi-Object Tracking
         tracks = self.tracker.update(detections)
@@ -489,9 +514,9 @@ class EnhancedDetectionService:
         """Draw heads-up display with stats."""
         h, w = frame.shape[:2]
         
-        # Semi-transparent background
+        # Semi-transparent background - expand for hybrid score
         overlay = frame.copy()
-        cv2.rectangle(overlay, (10, 10), (200, 100), (0, 0, 0), -1)
+        cv2.rectangle(overlay, (10, 10), (220, 135), (0, 0, 0), -1)
         cv2.addWeighted(overlay, 0.5, frame, 0.5, 0, frame)
         
         # Stats text
@@ -503,7 +528,19 @@ class EnhancedDetectionService:
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
         cv2.putText(frame, f"MaxRisk: {self._stats.get('max_risk', 0.0):.2f}", (20, 90),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
-        cv2.putText(frame, f"Frame: {self.frame_counter}", (20, 110),
+        
+        # Hybrid crash probability with color coding
+        crash_prob = self._hybrid_crash_prob
+        if crash_prob > 0.7:
+            crash_color = (0, 0, 255)  # Red
+        elif crash_prob > 0.4:
+            crash_color = (0, 165, 255)  # Orange
+        else:
+            crash_color = (0, 255, 0)  # Green
+        cv2.putText(frame, f"CrashProb: {crash_prob:.1%}", (20, 110),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, crash_color, 2)
+        
+        cv2.putText(frame, f"Frame: {self.frame_counter}", (20, 130),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
     
     

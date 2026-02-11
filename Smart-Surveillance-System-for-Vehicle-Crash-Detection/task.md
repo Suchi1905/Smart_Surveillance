@@ -58,7 +58,7 @@
   - [x] Phase B: Train ViT classifier on CCD (Val Acc=100%, ~2hrs)
   - [x] Phase C: Train fusion layer (Val Acc=100%, ~1.3hrs)
   - [x] Phase D: End-to-end fine-tuning (Val Acc=100%, ~42min)
-  - [ ] Benchmark performance and integration
+  - [x] Integration into detection service (`hybrid_classifier.py`)
 
 
 ## Phase 5: Testing

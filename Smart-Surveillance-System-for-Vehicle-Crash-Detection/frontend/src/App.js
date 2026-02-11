@@ -1,10 +1,9 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import "./App.css";
 import AlertsPanel from "./components/AlertsPanel";
 import AnalyticsWidget from "./components/AnalyticsWidget";
 import IncidentsView from "./components/IncidentsView";
 import SettingsView from "./components/SettingsView";
-import FeaturesGuide from "./components/FeaturesGuide";
 import LiveStatusPanel from "./components/LiveStatusPanel";
 
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
@@ -14,20 +13,31 @@ function App() {
   const [conf, setConf] = useState(0.6);
   const [systemHealthy, setSystemHealthy] = useState(true);
   const [systemSubtitle, setSystemSubtitle] = useState(
-    "Model loading status: checking..."
+    "Initializing system..."
   );
   const [aiAccuracy, setAiAccuracy] = useState("--%");
   const [incidentsToday] = useState(0);
   const liveFeedRef = useRef(null);
-  const [streamStatus, setStreamStatus] = useState("Stream idle");
+  const [streamStatus, setStreamStatus] = useState("Awaiting input");
   const [streaming, setStreaming] = useState(false);
 
-  // Video source state
-  const [streamSource, setStreamSource] = useState('webcam'); // 'webcam' or 'url'
+  // Video source state: webcam | url | file
+  const [streamSource, setStreamSource] = useState('file');
   const [videoUrl, setVideoUrl] = useState('');
+
+  // File upload state
+  const [uploadedFile, setUploadedFile] = useState(null);
+  const [uploadedFilename, setUploadedFilename] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [dragOver, setDragOver] = useState(false);
+  const fileInputRef = useRef(null);
 
   // Navigation state
   const [activeView, setActiveView] = useState('dashboard');
+
+  // Sidebar collapsed state
+  const [sidebarExpanded, setSidebarExpanded] = useState(true);
 
   // Clock
   useEffect(() => {
@@ -67,17 +77,16 @@ function App() {
               ? sys.ml_service.model_path
               : "loaded";
           setSystemSubtitle(
-            `Model: ${modelPath} • Anonymization: ${sys.anonymization ? "enabled" : "disabled"
-            }`
+            `YOLOv8 + ViT Hybrid • ${modelPath}`
           );
           setAiAccuracy("94.3%");
         } else {
-          setSystemSubtitle("Model not loaded or health check failed");
+          setSystemSubtitle("Model not loaded");
           setAiAccuracy("--%");
         }
       } catch (e) {
         setSystemHealthy(false);
-        setSystemSubtitle("Unable to reach /health or /api/system/status");
+        setSystemSubtitle("Backend unreachable");
         setAiAccuracy("--%");
       }
     };
@@ -87,16 +96,63 @@ function App() {
     return () => clearInterval(id);
   }, []);
 
-  // Initialize from query (?conf=...)
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const initialConf = parseFloat(params.get("conf") || "0.6");
-    if (!Number.isNaN(initialConf)) {
-      setConf(initialConf);
-      startStream(initialConf);
+  // File upload handler
+  const handleFileUpload = useCallback(async (file) => {
+    if (!file) return;
+
+    const ext = file.name.split('.').pop().toLowerCase();
+    const allowed = ['mp4', 'avi', 'mkv', 'mov', 'wmv', 'flv', 'webm'];
+    if (!allowed.includes(ext)) {
+      setStreamStatus(`Unsupported format .${ext}. Use: ${allowed.join(', ')}`);
+      return;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
+    setUploading(true);
+    setUploadProgress(0);
+    setStreamStatus(`Uploading ${file.name}...`);
+    setUploadedFile(file);
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      // Use relative URL to go through React dev proxy (avoids CORS)
+      const response = await fetch(`/video/upload`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      setUploadProgress(100);
+
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(errText || `HTTP ${response.status}`);
+      }
+
+      const data = await response.json();
+      setUploadedFilename(data.filename);
+      setStreamStatus(`✓ Uploaded: ${file.name} (${data.size_mb} MB) — Ready to analyze`);
+    } catch (err) {
+      console.error('Upload error:', err);
+      setStreamStatus(`Upload failed: ${err.message}`);
+      setUploadedFile(null);
+    } finally {
+      setUploading(false);
+    }
   }, []);
+
+  // Drag & drop handlers
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    setDragOver(true);
+  };
+  const handleDragLeave = () => setDragOver(false);
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setDragOver(false);
+    const file = e.dataTransfer.files[0];
+    if (file) handleFileUpload(file);
+  };
 
   const startStream = (confValue = conf) => {
     const img = liveFeedRef.current;
@@ -109,11 +165,11 @@ function App() {
 
     img.onload = () => {
       img.style.opacity = 1;
-      setStreamStatus("Live webcam stream active");
+      setStreamStatus("● Live — Webcam stream active");
     };
 
     img.onerror = () => {
-      setStreamStatus("Error loading webcam stream");
+      setStreamStatus("Error: webcam connection failed");
       setStreaming(false);
     };
   };
@@ -123,7 +179,7 @@ function App() {
     if (!img) return;
 
     if (!videoUrl.trim()) {
-      setStreamStatus("Please enter a video URL");
+      setStreamStatus("Enter a video URL first");
       return;
     }
 
@@ -131,16 +187,38 @@ function App() {
     const url = `${API_URL}/video/url?source=${encodedUrl}&conf=${confValue}`;
     img.src = url;
     img.style.opacity = 0;
-    setStreamStatus("Connecting to video URL...");
+    setStreamStatus("Connecting to URL source...");
     setStreaming(true);
 
     img.onload = () => {
       img.style.opacity = 1;
-      setStreamStatus("URL stream active - running detection");
+      setStreamStatus("● Live — URL stream active");
     };
 
     img.onerror = () => {
-      setStreamStatus("Error loading URL stream");
+      setStreamStatus("Error: URL stream failed");
+      setStreaming(false);
+    };
+  };
+
+  const startFileStream = (confValue = conf) => {
+    const img = liveFeedRef.current;
+    if (!img || !uploadedFilename) return;
+
+    const encodedFilename = encodeURIComponent(uploadedFilename);
+    const url = `${API_URL}/video/file?filename=${encodedFilename}&conf=${confValue}`;
+    img.src = url;
+    img.style.opacity = 0;
+    setStreamStatus("Starting analysis on uploaded video...");
+    setStreaming(true);
+
+    img.onload = () => {
+      img.style.opacity = 1;
+      setStreamStatus("● Live — Running crash detection on file");
+    };
+
+    img.onerror = () => {
+      setStreamStatus("Error: file stream failed");
       setStreaming(false);
     };
   };
@@ -148,8 +226,10 @@ function App() {
   const handleStartStream = () => {
     if (streamSource === 'webcam') {
       startStream(conf);
-    } else {
+    } else if (streamSource === 'url') {
       startUrlStream(conf);
+    } else if (streamSource === 'file') {
+      startFileStream(conf);
     }
   };
 
@@ -157,7 +237,6 @@ function App() {
     const img = liveFeedRef.current;
     if (!img) return;
 
-    // Explicitly tell backend to release camera
     try {
       await fetch(`${API_URL}/video/stop`, { method: 'POST' });
     } catch (err) {
@@ -171,10 +250,10 @@ function App() {
 
   // Navigation items
   const navItems = [
-    { id: 'dashboard', icon: '⬤', label: 'Dashboard' },
-    { id: 'feeds', icon: '📹', label: 'Live Feeds' },
-    { id: 'incidents', icon: '⚠️', label: 'Incident Logs' },
-    { id: 'settings', icon: '⚙️', label: 'Settings' }
+    { id: 'dashboard', icon: '◉', label: 'Dashboard' },
+    { id: 'feeds', icon: '▶', label: 'Live Feed' },
+    { id: 'incidents', icon: '⚠', label: 'Incidents' },
+    { id: 'settings', icon: '⚙', label: 'Settings' }
   ];
 
   // Get page title based on active view
@@ -183,9 +262,16 @@ function App() {
       case 'feeds': return 'Live Detection Feed';
       case 'incidents': return 'Incident Logs';
       case 'settings': return 'System Settings';
-      default: return 'Smart Surveillance Dashboard';
+      default: return 'Command Center';
     }
   };
+
+  // Source selector icons
+  const sourceOptions = [
+    { value: 'file', icon: '📁', label: 'Local File' },
+    { value: 'webcam', icon: '📷', label: 'Webcam' },
+    { value: 'url', icon: '🔗', label: 'URL / RTSP' },
+  ];
 
   // Render main content based on active view
   const renderMainContent = () => {
@@ -201,36 +287,39 @@ function App() {
       default:
         return (
           <>
-            {/* Features Guide - explains what the system does */}
+            {/* Stat cards — only on dashboard */}
             {activeView === 'dashboard' && (
-              <FeaturesGuide />
-            )}
-
-            {/* Analytics strip - only show on dashboard */}
-            {activeView === 'dashboard' && (
-              <section className="analytics">
+              <section className="stats-row">
                 <article className="stat-card glass">
-                  <div className="stat-card__label">TOTAL CAMERAS</div>
-                  <div className="stat-card__value">1</div>
-                  <div className="stat-card__meta">Active detection zone</div>
+                  <div className="stat-card__icon stat-card__icon--blue">🎯</div>
+                  <div className="stat-card__content">
+                    <div className="stat-card__value">{aiAccuracy}</div>
+                    <div className="stat-card__label">Model Accuracy</div>
+                  </div>
                 </article>
 
                 <article className="stat-card glass">
-                  <div className="stat-card__label">UPTIME</div>
-                  <div className="stat-card__value">99.98%</div>
-                  <div className="stat-card__meta">Last restart: &lt; 24h</div>
+                  <div className="stat-card__icon stat-card__icon--green">📡</div>
+                  <div className="stat-card__content">
+                    <div className="stat-card__value">1</div>
+                    <div className="stat-card__label">Active Feeds</div>
+                  </div>
                 </article>
 
                 <article className="stat-card glass">
-                  <div className="stat-card__label">INCIDENTS TODAY</div>
-                  <div className="stat-card__value">{incidentsToday}</div>
-                  <div className="stat-card__meta">Crash triage events</div>
+                  <div className="stat-card__icon stat-card__icon--amber">⚠</div>
+                  <div className="stat-card__content">
+                    <div className="stat-card__value">{incidentsToday}</div>
+                    <div className="stat-card__label">Incidents Today</div>
+                  </div>
                 </article>
 
                 <article className="stat-card glass">
-                  <div className="stat-card__label">AI ACCURACY</div>
-                  <div className="stat-card__value">{aiAccuracy}</div>
-                  <div className="stat-card__meta">Model performance (approx)</div>
+                  <div className="stat-card__icon stat-card__icon--purple">🧠</div>
+                  <div className="stat-card__content">
+                    <div className="stat-card__value">Hybrid</div>
+                    <div className="stat-card__label">YOLO + ViT + Fusion</div>
+                  </div>
                 </article>
               </section>
             )}
@@ -240,135 +329,181 @@ function App() {
               <LiveStatusPanel isStreaming={streaming} apiUrl={API_URL} />
             )}
 
-            {/* Camera grid */}
-            <section className="grid">
-              {/* Primary live feed card */}
-              <article className="camera-card glass camera-card--primary">
-                <header className="camera-card__header">
-                  <div className="camera-card__title-group">
-                    <h2 className="camera-card__title">Live Crash Detection Feed</h2>
-                    <span className="camera-card__subtitle">
-                      Edge anonymization • Severity triage • YOLO detection
+            {/* Main detection area */}
+            <section className="detection-area">
+              {/* Control sidebar */}
+              <aside className="control-panel glass">
+                <h3 className="control-panel__title">Video Source</h3>
+
+                {/* Source tabs */}
+                <div className="source-tabs">
+                  {sourceOptions.map(opt => (
+                    <button
+                      key={opt.value}
+                      className={`source-tab ${streamSource === opt.value ? 'source-tab--active' : ''}`}
+                      onClick={() => !streaming && setStreamSource(opt.value)}
+                      disabled={streaming}
+                    >
+                      <span className="source-tab__icon">{opt.icon}</span>
+                      <span className="source-tab__label">{opt.label}</span>
+                    </button>
+                  ))}
+                </div>
+
+                {/* File upload dropzone */}
+                {streamSource === 'file' && (
+                  <div
+                    className={`dropzone ${dragOver ? 'dropzone--active' : ''} ${uploadedFile ? 'dropzone--has-file' : ''}`}
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                    onClick={() => !uploading && fileInputRef.current?.click()}
+                  >
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept=".mp4,.avi,.mkv,.mov,.wmv,.flv,.webm"
+                      onChange={(e) => handleFileUpload(e.target.files[0])}
+                      style={{ display: 'none' }}
+                    />
+                    {uploading ? (
+                      <div className="dropzone__uploading">
+                        <div className="dropzone__progress-bar">
+                          <div
+                            className="dropzone__progress-fill"
+                            style={{ width: `${uploadProgress}%` }}
+                          />
+                        </div>
+                        <span className="dropzone__text">Uploading... {uploadProgress}%</span>
+                      </div>
+                    ) : uploadedFile ? (
+                      <div className="dropzone__file-info">
+                        <span className="dropzone__file-icon">🎬</span>
+                        <span className="dropzone__filename">{uploadedFile.name}</span>
+                        <span className="dropzone__file-size">
+                          {(uploadedFile.size / (1024 * 1024)).toFixed(1)} MB
+                        </span>
+                        <span className="dropzone__change">Click to change</span>
+                      </div>
+                    ) : (
+                      <div className="dropzone__empty">
+                        <span className="dropzone__upload-icon">⬆</span>
+                        <span className="dropzone__text">Drop video file here</span>
+                        <span className="dropzone__subtext">or click to browse</span>
+                        <span className="dropzone__formats">MP4 • AVI • MKV • MOV</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* URL Input */}
+                {streamSource === 'url' && (
+                  <div className="url-input-group">
+                    <label className="field__label">Video URL</label>
+                    <input
+                      type="text"
+                      value={videoUrl}
+                      onChange={(e) => setVideoUrl(e.target.value)}
+                      placeholder="https://youtube.com/watch?v=... or rtsp://..."
+                      className="url-input"
+                      disabled={streaming}
+                    />
+                  </div>
+                )}
+
+                {/* Confidence slider */}
+                <div className="confidence-control">
+                  <label className="field__label">
+                    Detection Confidence
+                    <span className="confidence-value">{conf.toFixed(1)}</span>
+                  </label>
+                  <input
+                    type="range"
+                    min="0.1"
+                    max="1.0"
+                    step="0.1"
+                    value={conf}
+                    onChange={(e) => setConf(parseFloat(e.target.value))}
+                  />
+                </div>
+
+                {/* Action buttons */}
+                <div className="action-buttons">
+                  <button
+                    type="button"
+                    className="btn btn--primary btn--full"
+                    onClick={handleStartStream}
+                    disabled={streaming || (streamSource === 'file' && !uploadedFilename) || (streamSource === 'url' && !videoUrl.trim())}
+                  >
+                    {streaming ? '● Analyzing...' : '▶ Start Detection'}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn--danger btn--full"
+                    onClick={stopStream}
+                    disabled={!streaming}
+                  >
+                    ■ Stop
+                  </button>
+                </div>
+
+                {/* Status display */}
+                <div className="stream-status">
+                  <span className={`stream-status__dot ${streaming ? 'stream-status__dot--live' : ''}`} />
+                  <span className="stream-status__text">{streamStatus}</span>
+                </div>
+              </aside>
+
+              {/* Video feed */}
+              <div className="feed-container glass">
+                <header className="feed-header">
+                  <div className="feed-header__left">
+                    <h2 className="feed-header__title">Crash Detection Feed</h2>
+                    <span className="feed-header__subtitle">
+                      YOLO + ViT Hybrid • Severity Triage • Edge Anonymization
                     </span>
                   </div>
-
-                  <div className="camera-card__badges">
-                    <span className="badge badge--live">LIVE</span>
+                  <div className="feed-header__badges">
+                    {streaming && <span className="badge badge--live">● LIVE</span>}
                     <span className="badge">Accident</span>
                     <span className="badge">Vehicle</span>
-                    <span className="badge">Human</span>
                   </div>
                 </header>
 
-                <div className="camera-card__body">
-                  <div className="camera-card__controls">
-                    {/* Source Selector */}
-                    <label className="field">
-                      <span className="field__label">Video Source</span>
-                      <div className="field__input-row">
-                        <select
-                          value={streamSource}
-                          onChange={(e) => setStreamSource(e.target.value)}
-                          className="field__select"
-                          disabled={streaming}
-                        >
-                          <option value="webcam">📷 Webcam</option>
-                          <option value="url">🔗 YouTube / Video URL</option>
-                        </select>
-                      </div>
-                    </label>
-
-                    {/* URL Input - only show when URL source selected */}
-                    {streamSource === 'url' && (
-                      <label className="field">
-                        <span className="field__label">Video URL</span>
-                        <div className="field__input-row">
-                          <input
-                            type="text"
-                            value={videoUrl}
-                            onChange={(e) => setVideoUrl(e.target.value)}
-                            placeholder="https://www.youtube.com/watch?v=... or RTSP URL"
-                            className="field__url-input"
-                            disabled={streaming}
-                          />
+                <div className="feed-viewport">
+                  <div className="feed-frame">
+                    <img
+                      ref={liveFeedRef}
+                      alt="Live crash detection stream"
+                      className="live-feed"
+                    />
+                    {!streaming && (
+                      <div className="feed-placeholder">
+                        <div className="feed-placeholder__icon">🎥</div>
+                        <div className="feed-placeholder__title">No Active Feed</div>
+                        <div className="feed-placeholder__sub">
+                          {streamSource === 'file'
+                            ? 'Upload a video file and click "Start Detection"'
+                            : streamSource === 'webcam'
+                              ? 'Click "Start Detection" to begin webcam capture'
+                              : 'Enter a URL and click "Start Detection"'
+                          }
                         </div>
-                      </label>
-                    )}
-
-                    <label className="field">
-                      <span className="field__label">Confidence Threshold</span>
-                      <div className="field__input-row">
-                        <input
-                          type="range"
-                          min="0.1"
-                          max="1.0"
-                          step="0.1"
-                          value={conf}
-                          onChange={(e) => setConf(parseFloat(e.target.value))}
-                        />
-                        <span className="field__value">{conf.toFixed(1)}</span>
                       </div>
-                    </label>
-
-                    <div className="button-row">
-                      <button
-                        type="button"
-                        className="btn btn--primary"
-                        onClick={handleStartStream}
-                        disabled={streaming}
-                      >
-                        {streamSource === 'webcam' ? '📷 Start Webcam' : '▶️ Start URL Stream'}
-                      </button>
-                      <button
-                        type="button"
-                        className="btn btn--ghost"
-                        onClick={stopStream}
-                        disabled={!streaming}
-                      >
-                        Stop
-                      </button>
-                    </div>
-
-                    <div className="meta-row">
-                      <span className="meta-row__item">
-                        {streamSource === 'webcam'
-                          ? <>Stream URL: <code>{`${API_URL}/video?conf=${conf.toFixed(1)}`}</code></>
-                          : <>Source: <code>{videoUrl || 'No URL entered'}</code></>
-                        }
-                      </span>
-                      <span className="meta-row__item">{streamStatus}</span>
-                    </div>
-                  </div>
-
-                  <div className="camera-card__feed">
-                    <div className="camera-card__feed-frame">
-                      <img
-                        ref={liveFeedRef}
-                        alt="Live crash detection stream"
-                        className="live-feed"
-                      />
-                      <div className="camera-card__feed-overlay" />
-                    </div>
-                  </div>
-                  <div className="camera-card__caption">
-                    <span className="camera-card__caption-main">
-                      Feed: North Intersection
-                    </span>
-                    <span className="camera-card__caption-sub">
-                      Powered by /video endpoint &amp; real-time YOLO inference
-                    </span>
+                    )}
+                    <div className="feed-scanline" />
                   </div>
                 </div>
-              </article>
+              </div>
             </section>
 
-            {/* Alerts and Analytics Section - only on dashboard */}
+            {/* Alerts and Analytics - only on dashboard */}
             {activeView === 'dashboard' && (
-              <section className="dashboard-extras">
-                <div className="dashboard-extras__alerts">
+              <section className="dashboard-bottom">
+                <div className="dashboard-bottom__alerts">
                   <AlertsPanel maxAlerts={10} />
                 </div>
-                <div className="dashboard-extras__analytics">
+                <div className="dashboard-bottom__analytics">
                   <AnalyticsWidget />
                 </div>
               </section>
@@ -378,13 +513,15 @@ function App() {
     }
   };
 
-
   return (
-    <div className="app-container">
+    <div className={`app-container ${sidebarExpanded ? '' : 'app-container--collapsed'}`}>
       {/* Sidebar */}
-      <aside className="sidebar">
-        <div className="sidebar__logo">
+      <aside className={`sidebar ${sidebarExpanded ? 'sidebar--expanded' : ''}`}>
+        <div className="sidebar__brand" onClick={() => setSidebarExpanded(!sidebarExpanded)}>
           <span className="sidebar__logo-mark" />
+          {sidebarExpanded && (
+            <span className="sidebar__brand-text">CrashGuard AI</span>
+          )}
         </div>
 
         <nav className="sidebar__nav">
@@ -397,12 +534,15 @@ function App() {
               onClick={() => setActiveView(item.id)}
             >
               <span className="sidebar__icon">{item.icon}</span>
+              {sidebarExpanded && (
+                <span className="sidebar__label">{item.label}</span>
+              )}
             </button>
           ))}
         </nav>
 
         <div className="sidebar__footer">
-          <span className="sidebar__version">v2.1</span>
+          <span className="sidebar__version">v3.0</span>
         </div>
       </aside>
 
@@ -416,9 +556,9 @@ function App() {
                 "system-pill" + (systemHealthy ? "" : " system-pill--error")
               }
             >
-              <span className="system-pill__dot">🟢</span>
+              <span className="system-pill__dot">{systemHealthy ? '●' : '○'}</span>
               <span className="system-pill__label">
-                {systemHealthy ? "System Healthy" : "System Warning"}
+                {systemHealthy ? "Online" : "Offline"}
               </span>
             </div>
 
@@ -430,15 +570,6 @@ function App() {
 
           <div className="header__right">
             <div className="header__clock">{clock}</div>
-
-            <div className="header__search">
-              <span className="header__search-icon">🔍</span>
-              <input
-                type="text"
-                className="header__search-input"
-                placeholder="Search cameras, incidents, zones..."
-              />
-            </div>
           </div>
         </header>
 
