@@ -19,6 +19,11 @@ try:
 except ImportError:
     from config import get_settings
 
+try:
+    from .hybrid_classifier import HybridClassifier
+except ImportError:
+    HybridClassifier = None
+
 logger = logging.getLogger(__name__)
 
 
@@ -44,11 +49,23 @@ class DetectionService:
         self.triage_system = SeverityTriageSystem()
         self.settings = get_settings()
         self.frame_counter = 0
-        self.alert_sent = False
+        self._last_alert_time = 0.0  # timestamp-based cooldown
+        self._alert_cooldown = 5  # seconds between alerts
         self._alert_callback = None
         self._stop_event = threading.Event()
         # For backwards compatibility
         self.model = None
+        
+        # Hybrid crash classifier (YOLO + ViT + Fusion)
+        self.hybrid_classifier = None
+        self._hybrid_crash_prob = 0.0
+        self._hybrid_crash_sustained = 0
+        if HybridClassifier is not None:
+            try:
+                self.hybrid_classifier = HybridClassifier()
+                logger.info("HybridClassifier initialized for DetectionService")
+            except Exception as e:
+                logger.warning(f"HybridClassifier not available: {e}")
     
     def stop_stream(self):
         """Signal the frame generator to stop and release resources."""
@@ -546,6 +563,7 @@ class DetectionService:
                             continue
                         
                         crash_detections.append((crash_box, conf, cls_name))
+                        logger.info(f"🔴 CRASH DETECTED: {cls_name} conf={conf:.2f} box={crash_box}")
                         
                         # Draw crash detection box (RED)
                         label = f"CRASH: {cls_name} {conf:.2f}"
@@ -567,19 +585,61 @@ class DetectionService:
                         )
         
         # Perform severity triage analysis ONLY on crash detections
+        severity_alert_triggered = False
         if crash_detections:
+            logger.info(f"📊 Running severity triage on {len(crash_detections)} crash detection(s)")
             severity_results = self.triage_system.analyze_accident(
                 crash_detections, self.frame_counter
             )
             
-            # Draw severity information
+            # Draw severity information and save to DB
             for sev_result in severity_results:
+                logger.info(f"📊 Severity: {sev_result.severity_category} "
+                            f"(index={sev_result.severity_index:.2f}, "
+                            f"class={sev_result.class_name}, conf={sev_result.confidence:.2f})")
                 if sev_result.severity_category != "Monitoring":
                     self._draw_severity_info(frame, sev_result)
                     
-                    # Handle severe accidents - send alert for EVERY severe crash
-                    if sev_result.severity_category == "Severe":
-                        self._trigger_alert(frame, sev_result)
+                    # Save ALL non-Monitoring crash events to database
+                    self._save_crash_to_db(sev_result)
+                    
+                    # Trigger alert (Telegram) for Severe and Moderate
+                    if sev_result.severity_category in ("Severe", "Moderate"):
+                        severity_alert_triggered = True
+                        if self._can_send_alert():
+                            self._trigger_alert(frame, sev_result)
+                        else:
+                            logger.debug("Alert cooldown active, skipping")
+        
+        # Hybrid model crash detection (catches bike-to-car and other crashes)
+        if self.hybrid_classifier is not None:
+            try:
+                hybrid_result = self.hybrid_classifier.classify(frame)
+                self._hybrid_crash_prob = hybrid_result.get('crash_probability', 0.0)
+                
+                if self.frame_counter % 30 == 0:  # Log every ~1 sec
+                    logger.info(f"🔮 Hybrid classifier: crash_prob={self._hybrid_crash_prob:.3f}, "
+                                f"sustained={self._hybrid_crash_sustained}")
+                
+                if self._hybrid_crash_prob > 0.55:
+                    self._hybrid_crash_sustained += 1
+                    # Require 3+ consecutive high-prob frames
+                    if self._hybrid_crash_sustained >= 3 and not severity_alert_triggered:
+                        if self._can_send_alert():
+                            logger.info(f"Hybrid crash alert: prob={self._hybrid_crash_prob:.2f}")
+                            hybrid_sev = SeverityResult(
+                                track_id=-1,
+                                severity_index=self._hybrid_crash_prob,
+                                severity_category="Severe",
+                                class_name="crash_hybrid",
+                                confidence=self._hybrid_crash_prob,
+                                box=(0, 0, frame.shape[1], frame.shape[0])
+                            )
+                            self._trigger_alert(frame, hybrid_sev)
+                else:
+                    self._hybrid_crash_sustained = 0
+            except Exception as e:
+                logger.debug(f"Hybrid classification error: {e}")
         
         return frame
     
@@ -600,13 +660,64 @@ class DetectionService:
             2
         )
     
+    def _save_crash_to_db(self, sev_result: SeverityResult) -> None:
+        """Save a crash event to the database and analytics store."""
+        try:
+            from ..database import SessionLocal, CrashEvent
+            db = SessionLocal()
+            try:
+                crash_event = CrashEvent(
+                    confidence=float(sev_result.confidence),
+                    class_name=str(sev_result.class_name),
+                    severity_category=str(sev_result.severity_category),
+                    severity_index=float(sev_result.severity_index),
+                    track_id=int(sev_result.track_id) if sev_result.track_id >= 0 else None,
+                    frame_number=int(self.frame_counter),
+                    bbox_x1=int(sev_result.box[0]) if sev_result.box else None,
+                    bbox_y1=int(sev_result.box[1]) if sev_result.box else None,
+                    bbox_x2=int(sev_result.box[2]) if sev_result.box else None,
+                    bbox_y2=int(sev_result.box[3]) if sev_result.box else None,
+                    alert_sent=False,
+                    camera_id="CAM-01",
+                    location="Video Feed"
+                )
+                db.add(crash_event)
+                db.commit()
+                logger.info(f"💾 Crash saved to DB: id={crash_event.id}, "
+                           f"{sev_result.severity_category} ({sev_result.class_name})")
+            finally:
+                db.close()
+        except Exception as e:
+            logger.error(f"Failed to save crash to database: {e}")
+        
+        # Record in analytics store
+        try:
+            from ..routers.analytics import record_incident
+            record_incident({
+                "timestamp": time.time(),
+                "incident_type": sev_result.severity_category.lower(),
+                "confidence": sev_result.confidence,
+                "class_name": sev_result.class_name,
+                "severity_index": sev_result.severity_index,
+            })
+        except Exception as e:
+            logger.debug(f"Analytics recording failed: {e}")
+
+    def _can_send_alert(self) -> bool:
+        """Check if enough time has passed since the last alert."""
+        return (time.time() - self._last_alert_time) >= self._alert_cooldown
+
     def _trigger_alert(
         self, 
         frame: np.ndarray, 
         sev_result: SeverityResult
     ) -> None:
-        """Trigger alert for severe crash - sends Telegram notification."""
-        logger.info(f"🚨 SEVERE CRASH DETECTED! Triggering Telegram alert...")
+        """Trigger alert for crash - sends Telegram notification."""
+        self._last_alert_time = time.time()
+        self._hybrid_crash_sustained = 0  # Reset to avoid re-triggering
+        
+        logger.info(f"🚨 CRASH ALERT: {sev_result.class_name} "
+                     f"(conf={sev_result.confidence:.2f}, severity={sev_result.severity_category})")
         
         # Privacy mode: optionally anonymize frame before sending
         alert_frame = frame.copy()
@@ -639,16 +750,6 @@ class DetectionService:
                 args=(sev_result.confidence, alert_frame, sev_result),
                 daemon=True
             ).start()
-        
-        # Set cooldown
-        self.alert_sent = True
-        threading.Thread(target=self._reset_alert_flag, daemon=True).start()
-    
-    def _reset_alert_flag(self) -> None:
-        """Reset alert flag after cooldown."""
-        time.sleep(self.settings.alert_cooldown_seconds)
-        self.alert_sent = False
-        logger.info("Alert cooldown ended, ready for next alert")
     
     def _create_error_frame(self, message: str) -> np.ndarray:
         """Create an error frame with message."""

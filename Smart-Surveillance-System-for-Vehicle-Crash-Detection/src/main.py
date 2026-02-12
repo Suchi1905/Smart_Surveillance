@@ -91,23 +91,31 @@ async def lifespan(app: FastAPI):
     
     def alert_callback_wrapper(confidence, frame, severity_info=None):
         """
-        Wraps Telegram alert to also notify frontend via WebSocket.
+        Alert callback — notifies frontend via WebSocket.
+        Telegram is already sent directly by _trigger_alert, so we only handle WS here.
         """
-        # 1. Send Telegram Alert
-        sent = send_telegram_alert(confidence, frame, severity_info)
-        
-        # 2. Notify Frontend via WebSocket if successful
-        if sent and severity_info:
+        if severity_info:
             try:
                 manager = get_ws_manager()
                 
-                # Construct clean notification data
+                # Handle both dict and SeverityResult objects
+                if hasattr(severity_info, 'track_id'):
+                    track_id = severity_info.track_id
+                    severity = severity_info.severity_category
+                elif isinstance(severity_info, dict):
+                    track_id = severity_info.get('track_id', 'N/A')
+                    severity = severity_info.get('severity_category', 'Unknown')
+                else:
+                    track_id = 'N/A'
+                    severity = 'Unknown'
+                
+                from datetime import datetime
                 notification_data = {
                     "type": "notification_sent",
                     "platform": "Telegram",
-                    "timestamp": get_settings().get_timestamp(),
-                    "track_id": severity_info.get('track_id', 'N/A'),
-                    "severity": severity_info.get('severity_category', 'Unknown')
+                    "timestamp": datetime.now().isoformat(),
+                    "track_id": str(track_id),
+                    "severity": str(severity)
                 }
                 
                 # Broadcast properly using the manager's queue
@@ -122,8 +130,6 @@ async def lifespan(app: FastAPI):
                     )
             except Exception as e:
                 logger.error(f"Failed to broadcast alert notification: {e}")
-                
-        return sent
 
     detection_service.set_alert_callback(alert_callback_wrapper)
     

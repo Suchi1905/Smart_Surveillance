@@ -99,10 +99,12 @@ class EnhancedDetectionService:
         
         # State
         self.frame_counter = 0
-        self.alert_sent = False
+        self._last_alert_time = 0.0  # timestamp-based cooldown (more reliable than boolean)
+        self._alert_cooldown = 5  # seconds between alerts
         self._alert_callback = None
         self._ws_manager = None
         self._hybrid_crash_prob = 0.0  # Latest hybrid crash probability
+        self._hybrid_crash_sustained = 0  # count of consecutive high-prob frames
         
         # Statistics
         self._stats = {
@@ -372,6 +374,7 @@ class EnhancedDetectionService:
             self._stats["max_risk"] = current_max_risk
         
         # 7. Severity Triage (for crash detections)
+        severity_alert_triggered = False
         if detection_data:
             severity_results = self.triage_system.analyze_accident(
                 detection_data, self.frame_counter
@@ -381,15 +384,36 @@ class EnhancedDetectionService:
                 if sev_result.severity_category != "Monitoring":
                     self._draw_severity_info(frame, sev_result)
                     
-                    if (sev_result.severity_category == "Severe" 
-                            and not self.alert_sent 
-                            and self._alert_callback):
-                        self._trigger_alert(frame, sev_result)
+                    if sev_result.severity_category == "Severe":
+                        severity_alert_triggered = True
+                        if self._can_send_alert():
+                            self._trigger_alert(frame, sev_result)
         
-        # 7. Draw HUD overlay
+        # 7b. Hybrid model crash alert (catches crashes severity triage misses)
+        if self.use_hybrid and self._hybrid_crash_prob > 0.55:
+            self._hybrid_crash_sustained += 1
+            # Require 3+ consecutive high-probability frames to avoid false positives
+            if self._hybrid_crash_sustained >= 3 and not severity_alert_triggered:
+                if self._can_send_alert():
+                    logger.info(f"Hybrid model crash alert: prob={self._hybrid_crash_prob:.2f}, sustained={self._hybrid_crash_sustained} frames")
+                    # Create a synthetic SeverityResult for the hybrid alert
+                    hybrid_sev = SeverityResult(
+                        track_id=-1,
+                        severity_index=self._hybrid_crash_prob,
+                        severity_category="Severe",
+                        class_name="crash_hybrid",
+                        confidence=self._hybrid_crash_prob,
+                        box=(0, 0, frame.shape[1], frame.shape[0])
+                    )
+                    self._trigger_alert(frame, hybrid_sev)
+        else:
+            # Reset sustained counter when probability drops
+            self._hybrid_crash_sustained = 0
+        
+        # 8. Draw HUD overlay
         self._draw_hud(frame, fps, len(tracks), len(collision_risks))
         
-        # 8. Broadcast to WebSocket (async)
+        # 9. Broadcast to WebSocket (async)
         if self._ws_manager and (self.frame_counter % 5 == 0):
             self._broadcast_updates(tracks, speed_measurements, collision_risks)
         
@@ -574,23 +598,68 @@ class EnhancedDetectionService:
         cv2.putText(frame, f"RISK: {score:.2f}", (bar_x + bar_w + 5, bar_y + 5),
                    cv2.FONT_HERSHEY_SIMPLEX, 0.4, color, 1)
 
+    def _can_send_alert(self) -> bool:
+        """Check if enough time has passed since the last alert."""
+        return (time.time() - self._last_alert_time) >= self._alert_cooldown
+
     def _trigger_alert(self, frame: np.ndarray, sev_result: SeverityResult):
-        """Trigger alert for severe crash."""
-        anon_frame = frame.copy()
+        """Trigger alert for severe crash — saves to DB, sends Telegram, fires callback."""
+        self._last_alert_time = time.time()
+        self._hybrid_crash_sustained = 0  # Reset to avoid re-triggering
         
+        logger.info(f"🚨 ALERT TRIGGERED: {sev_result.class_name} "
+                     f"(conf={sev_result.confidence:.2f}, severity={sev_result.severity_category})")
+        
+        # === Save crash event to database ===
+        try:
+            from ..database import SessionLocal, CrashEvent
+            db = SessionLocal()
+            try:
+                crash_event = CrashEvent(
+                    confidence=float(sev_result.confidence),
+                    class_name=str(sev_result.class_name),
+                    severity_category=str(sev_result.severity_category),
+                    severity_index=float(sev_result.severity_index),
+                    track_id=int(sev_result.track_id) if sev_result.track_id >= 0 else None,
+                    frame_number=int(self.frame_counter),
+                    bbox_x1=int(sev_result.box[0]) if sev_result.box else None,
+                    bbox_y1=int(sev_result.box[1]) if sev_result.box else None,
+                    bbox_x2=int(sev_result.box[2]) if sev_result.box else None,
+                    bbox_y2=int(sev_result.box[3]) if sev_result.box else None,
+                    alert_sent=True,
+                    camera_id="CAM-01",
+                    location="Video Feed"
+                )
+                db.add(crash_event)
+                db.commit()
+                logger.info(f"✅ Crash event saved to database (id={crash_event.id})")
+            finally:
+                db.close()
+        except Exception as e:
+            logger.error(f"Failed to save crash to database: {e}")
+        
+        # === Record in analytics store ===
+        try:
+            from ..routers.analytics import record_incident
+            record_incident({
+                "timestamp": time.time(),
+                "incident_type": sev_result.severity_category.lower(),
+                "confidence": sev_result.confidence,
+                "class_name": sev_result.class_name,
+                "severity_index": sev_result.severity_index,
+            })
+        except Exception as e:
+            logger.debug(f"Analytics recording failed: {e}")
+        
+        # Fire alert callback (e.g. Telegram)
+        anon_frame = frame.copy()
         if self._alert_callback:
             threading.Thread(
                 target=self._alert_callback,
                 args=(sev_result.confidence, anon_frame, sev_result)
             ).start()
         
-        self.alert_sent = True
-        threading.Thread(target=self._reset_alert_flag).start()
-    
-    def _reset_alert_flag(self):
-        """Reset alert flag after cooldown."""
-        time.sleep(self.settings.alert_cooldown_seconds)
-        self.alert_sent = False
+        self._stats["total_alerts"] += 1
     
     def _broadcast_updates(
         self, 

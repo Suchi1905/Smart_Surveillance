@@ -69,10 +69,13 @@ async def list_crashes(
     for event in events:
         bbox = None
         if event.bbox_x1 is not None:
-            bbox = BoundingBox(
-                x1=event.bbox_x1, y1=event.bbox_y1,
-                x2=event.bbox_x2, y2=event.bbox_y2
-            )
+            try:
+                bbox = BoundingBox(
+                    x1=int(event.bbox_x1), y1=int(event.bbox_y1),
+                    x2=int(event.bbox_x2), y2=int(event.bbox_y2)
+                )
+            except (TypeError, ValueError):
+                bbox = None  # Skip corrupted bbox data
         
         event_responses.append(CrashEventResponse(
             id=event.id,
