@@ -1,117 +1,191 @@
+/* ============================================
+   Incidents View — Enhanced
+   ============================================ */
 .incidents-view {
-    padding: 24px;
-    height: 100%;
-    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
 }
 
-.incidents-view__header {
+/* Page Header */
+.incidents-view__page-header {
     display: flex;
+    align-items: center;
     justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 24px;
-    flex-wrap: wrap;
-    gap: 16px;
 }
 
-.incidents-view__title {
+.incidents-view__page-title {
     font-size: 1.5rem;
-    font-weight: 700;
-    margin: 0;
-    background: linear-gradient(135deg, #f1f5f9, #22d3ee);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    font-weight: 800;
+    color: var(--text-1);
 }
 
-.incidents-view__subtitle {
-    font-size: 0.85rem;
-    color: rgba(255, 255, 255, 0.5);
-    margin: 4px 0 0 0;
-}
-
-.incidents-view__controls {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-}
-
-.incidents-view__filter {
-    padding: 8px 16px;
-    border-radius: 20px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    background: rgba(255, 255, 255, 0.05);
-    color: #fff;
-    font-size: 0.85rem;
-    cursor: pointer;
-}
-
-.incidents-view__filter:focus {
-    outline: none;
-    border-color: #22d3ee;
-}
-
-.incidents-view__count {
+.incidents-view__page-subtitle {
     font-size: 0.8rem;
-    color: rgba(255, 255, 255, 0.5);
-    padding: 6px 12px;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 12px;
+    color: var(--text-3);
+    margin-top: 2px;
 }
 
-.incidents-view__loading {
+/* Severity Timeline Chart */
+.incidents-view__timeline-chart {
+    padding: 20px;
+    border-radius: var(--r-xl);
+}
+
+.incidents-view__timeline-header {
     display: flex;
     align-items: center;
-    justify-content: center;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.incidents-view__timeline-header h3 {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-1);
+}
+
+.incidents-view__timeline-area {
+    height: 160px;
+}
+
+/* Filter Bar */
+.incidents-view__filter-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    border-radius: var(--r-lg);
     gap: 12px;
-    height: 200px;
-    color: rgba(255, 255, 255, 0.6);
 }
 
-.incidents-view__error {
-    padding: 16px;
-    background: rgba(255, 68, 68, 0.1);
-    border: 1px solid rgba(255, 68, 68, 0.3);
-    border-radius: 12px;
-    color: #ff6b6b;
-    margin-bottom: 16px;
-}
-
-.incidents-view__list {
+.incidents-view__filter-left {
     display: flex;
-    flex-direction: column;
-    gap: 16px;
-}
-
-.incidents-view__empty {
-    display: flex;
-    flex-direction: column;
     align-items: center;
-    justify-content: center;
-    padding: 48px;
+    gap: 10px;
+}
+
+.incidents-view__filter-icon {
+    font-size: 1rem;
+}
+
+.incidents-view__filter-label {
+    font-size: 0.75rem;
+    color: var(--text-3);
+    font-weight: 600;
+}
+
+.incidents-view__filter-select {
+    padding: 6px 12px;
+    border-radius: var(--r-md);
+    border: 1px solid var(--border-2);
+    background: var(--bg-elevated);
+    color: var(--text-1);
+    font-size: 0.75rem;
+    font-family: 'Inter', sans-serif;
+    outline: none;
+}
+
+.incidents-view__count-badge {
+    padding: 4px 10px;
+    border-radius: var(--r-full);
+    background: rgba(34, 211, 238, 0.15);
+    border: 1px solid rgba(34, 211, 238, 0.3);
+    color: var(--brand-cyan);
+    font-size: 0.7rem;
+    font-weight: 600;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.incidents-view__export-btn {
+    white-space: nowrap;
+}
+
+/* Error State */
+.incidents-view__error {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 18px;
+    border-radius: var(--r-lg);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    font-size: 0.8rem;
+    color: var(--danger);
+}
+
+/* Empty State */
+.incidents-view__empty {
     text-align: center;
-    color: rgba(255, 255, 255, 0.5);
+    padding: 60px 20px;
+    border-radius: var(--r-xl);
 }
 
 .incidents-view__empty-icon {
     font-size: 3rem;
-    margin-bottom: 16px;
+    margin-bottom: 12px;
 }
 
-.incidents-view__empty h3 {
-    margin: 0 0 8px 0;
-    font-size: 1.2rem;
-    color: rgba(255, 255, 255, 0.7);
+.incidents-view__empty-text {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text-1);
+    margin-bottom: 4px;
 }
 
-.incidents-view__empty p {
-    margin: 0;
+.incidents-view__empty-sub {
+    font-size: 0.8rem;
+    color: var(--text-3);
+}
+
+/* Loading */
+.incidents-view__loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 60px 20px;
+    border-radius: var(--r-xl);
+    color: var(--text-2);
     font-size: 0.9rem;
 }
 
-/* Incident Card */
+.incidents-view__spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid var(--border-2);
+    border-top-color: var(--brand-cyan);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Incident Cards */
+.incidents-view__list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
 .incident-card {
     display: flex;
+    border-radius: var(--r-lg);
     overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.incident-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.incident-card--animate {
+    animation: stat-card-entrance 0.4s ease-out both;
 }
 
 .incident-card__severity-bar {
@@ -119,70 +193,113 @@
     flex-shrink: 0;
 }
 
-.incident-card__content {
+.incident--severe .incident-card__severity-bar {
+    background: var(--danger);
+}
+
+.incident--moderate .incident-card__severity-bar {
+    background: var(--warning);
+}
+
+.incident--mild .incident-card__severity-bar {
+    background: var(--brand-cyan);
+}
+
+.incident--unknown .incident-card__severity-bar {
+    background: var(--text-3);
+}
+
+.incident-card__body {
     flex: 1;
-    padding: 16px 20px;
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
 }
 
 .incident-card__header {
     display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 12px;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 4px;
 }
 
-.incident-card__meta {
-    display: flex;
+.incident-card__badge {
+    display: inline-flex;
     align-items: center;
-    gap: 12px;
+    gap: 4px;
+    padding: 3px 10px;
+    border-radius: var(--r-full);
+    font-size: 0.65rem;
+    font-weight: 700;
+}
+
+.incident-card__badge.incident--severe {
+    background: rgba(239, 68, 68, 0.15);
+    color: var(--danger);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.incident-card__badge.incident--moderate {
+    background: rgba(245, 158, 11, 0.15);
+    color: var(--warning);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.incident-card__badge.incident--mild {
+    background: rgba(34, 211, 238, 0.15);
+    color: var(--brand-cyan);
+    border: 1px solid rgba(34, 211, 238, 0.3);
 }
 
 .incident-card__id {
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: rgba(255, 255, 255, 0.4);
+    font-size: 0.65rem;
+    color: var(--text-3);
+    font-family: 'JetBrains Mono', monospace;
 }
 
-.incident-card__severity {
+.incident-card__desc {
     font-size: 0.75rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
+    color: var(--text-2);
+    margin-bottom: 2px;
 }
 
-.incident-card__time {
-    font-size: 0.75rem;
-    color: rgba(255, 255, 255, 0.4);
+.incident-card__location {
+    font-size: 0.7rem;
+    color: var(--text-3);
 }
 
-.incident-card__details {
+.incident-card__stats {
     display: flex;
-    gap: 24px;
-    flex-wrap: wrap;
+    align-items: center;
+    gap: 16px;
+    flex-shrink: 0;
 }
 
 .incident-card__stat {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
+    text-align: right;
 }
 
 .incident-card__stat-label {
-    font-size: 0.7rem;
+    display: block;
+    font-size: 0.6rem;
+    color: var(--text-3);
     text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: rgba(255, 255, 255, 0.4);
 }
 
 .incident-card__stat-value {
-    font-size: 0.95rem;
-    font-weight: 600;
-    color: #fff;
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--text-1);
+    font-family: 'JetBrains Mono', monospace;
 }
 
-.incident-card__description {
-    margin: 12px 0 0 0;
-    font-size: 0.85rem;
-    color: rgba(255, 255, 255, 0.6);
-    line-height: 1.5;
+.incident-card__stat-value--cyan {
+    color: var(--brand-cyan);
+}
+
+.incident-card__stat-value--warning {
+    color: var(--warning);
 }

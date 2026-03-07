@@ -1,0 +1,60 @@
+.incident-timeline {
+    padding: 20px;
+    border-radius: var(--r-xl);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.incident-timeline__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+}
+
+.incident-timeline__title-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.incident-timeline__icon {
+    font-size: 1.5rem;
+}
+
+.incident-timeline__title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-1);
+}
+
+.incident-timeline__trend {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.incident-timeline__trend-icon {
+    font-size: 1rem;
+    font-weight: 700;
+}
+
+.incident-timeline__trend-icon.trend--up {
+    color: var(--danger);
+}
+
+.incident-timeline__trend-icon.trend--down {
+    color: var(--success);
+}
+
+.incident-timeline__trend-total {
+    font-size: 0.7rem;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text-3);
+}
+
+.incident-timeline__chart {
+    flex: 1;
+    min-height: 240px;
+}

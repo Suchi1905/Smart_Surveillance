@@ -1,0 +1,71 @@
+.severity-distribution {
+    padding: 20px;
+    border-radius: var(--r-xl);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.severity-distribution__header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.severity-distribution__icon {
+    font-size: 1.5rem;
+}
+
+.severity-distribution__title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-1);
+}
+
+.severity-distribution__chart {
+    flex: 1;
+    min-height: 240px;
+}
+
+.severity-distribution__total {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.severity-distribution__total-label {
+    font-size: 0.75rem;
+    color: var(--text-3);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.severity-distribution__total-value {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text-1);
+    font-family: 'JetBrains Mono', monospace;
+}
+
+/* Shared chart tooltip styles */
+.chart-tooltip {
+    padding: 8px 12px;
+    border-radius: var(--r-md);
+    border: 1px solid var(--glass-border);
+}
+
+.chart-tooltip__label {
+    font-size: 0.7rem;
+    color: var(--text-2);
+    margin-bottom: 2px;
+}
+
+.chart-tooltip__value {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--brand-cyan);
+    font-family: 'JetBrains Mono', monospace;
+}

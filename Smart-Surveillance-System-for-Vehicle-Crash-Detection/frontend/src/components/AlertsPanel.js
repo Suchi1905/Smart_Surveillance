@@ -11,6 +11,8 @@ const AlertsPanel = ({ maxAlerts = 10 }) => {
     const [alerts, setAlerts] = useState([]);
     const [connected, setConnected] = useState(false);
     const [wsStatus, setWsStatus] = useState('Disconnected');
+    const [soundEnabled, setSoundEnabled] = useState(true);
+    const [toasts, setToasts] = useState([]);
     const wsRef = useRef(null);
     const reconnectTimeoutRef = useRef(null);
 
@@ -41,6 +43,29 @@ const AlertsPanel = ({ maxAlerts = 10 }) => {
                         };
 
                         setAlerts(prev => [newAlert, ...prev].slice(0, maxAlerts));
+
+                        // Toast notification for severe/critical alerts
+                        const sev = (data.data.severity || '').toLowerCase();
+                        if (sev === 'severe' || sev === 'critical') {
+                            const toastId = Date.now() + Math.random();
+                            setToasts(prev => [...prev, {
+                                id: toastId,
+                                severity: sev,
+                                message: data.data.description || data.data.message || 'Alert triggered'
+                            }]);
+                            setTimeout(() => {
+                                setToasts(prev => prev.filter(t => t.id !== toastId));
+                            }, 5000);
+
+                            // Sound notification
+                            if (soundEnabled) {
+                                try {
+                                    const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbsGczIj2a0teleShJj8PV17dHMECKwtfTuk9FQH+7z9DDUVA=');
+                                    audio.volume = 0.3;
+                                    audio.play().catch(() => { });
+                                } catch (e) { }
+                            }
+                        }
                     } else if (data.type === 'notification_sent') {
                         // Update the alert to show it was sent to Telegram
                         const { track_id } = data.data;
@@ -124,6 +149,18 @@ const AlertsPanel = ({ maxAlerts = 10 }) => {
 
     return (
         <div className="alerts-panel glass">
+            {/* Toast Notifications */}
+            {toasts.length > 0 && (
+                <div className="toast-container">
+                    {toasts.map(toast => (
+                        <div key={toast.id} className={`toast toast--${toast.severity}`}>
+                            <div className="toast__title">🚨 {toast.severity === 'critical' ? 'Critical' : 'Severe'} Alert</div>
+                            <div className="toast__desc">{toast.message}</div>
+                        </div>
+                    ))}
+                </div>
+            )}
+
             <header className="alerts-panel__header">
                 <h3 className="alerts-panel__title">
                     🔔 Live Alerts
@@ -131,11 +168,20 @@ const AlertsPanel = ({ maxAlerts = 10 }) => {
                         {wsStatus}
                     </span>
                 </h3>
-                {alerts.length > 0 && (
-                    <button className="btn btn--ghost btn--sm" onClick={clearAllAlerts}>
-                        Clear All
+                <div className="alerts-panel__controls">
+                    <button
+                        className={`btn btn--ghost btn--sm alerts-panel__sound-btn ${soundEnabled ? '' : 'alerts-panel__sound-btn--muted'}`}
+                        onClick={() => setSoundEnabled(!soundEnabled)}
+                        title={soundEnabled ? 'Mute alerts' : 'Enable sound'}
+                    >
+                        {soundEnabled ? '🔊' : '🔇'}
                     </button>
-                )}
+                    {alerts.length > 0 && (
+                        <button className="btn btn--ghost btn--sm" onClick={clearAllAlerts}>
+                            Clear All
+                        </button>
+                    )}
+                </div>
             </header>
 
             <div className="alerts-panel__list">
@@ -145,10 +191,11 @@ const AlertsPanel = ({ maxAlerts = 10 }) => {
                         <span>No active alerts</span>
                     </div>
                 ) : (
-                    alerts.map((alert) => (
+                    alerts.map((alert, index) => (
                         <article
                             key={alert.id}
-                            className={`alert-item ${getSeverityClass(alert.severity)}`}
+                            className={`alert-item ${getSeverityClass(alert.severity)} alert-item--animate`}
+                            style={{ animationDelay: `${index * 0.05}s` }}
                         >
                             <div className="alert-item__icon">
                                 {getSeverityIcon(alert.severity)}
@@ -166,11 +213,10 @@ const AlertsPanel = ({ maxAlerts = 10 }) => {
                                 {alert.track_id && (
                                     <div className="alert-item__meta">
                                         <span className="alert-item__track">#{alert.track_id}</span>
-                                        {alert.sentToTelegram && (
-                                            <span className="alert-item__telegram" title="Notification sent to Telegram">
-                                                ✈️ Sent
-                                            </span>
-                                        )}
+                                        <span className={`alert-item__telegram ${alert.sentToTelegram ? 'alert-item__telegram--sent' : 'alert-item__telegram--pending'}`}
+                                            title={alert.sentToTelegram ? 'Sent to Telegram' : 'Not sent'}>
+                                            {alert.sentToTelegram ? '✅ Sent' : '⏳ Pending'}
+                                        </span>
                                     </div>
                                 )}
                             </div>

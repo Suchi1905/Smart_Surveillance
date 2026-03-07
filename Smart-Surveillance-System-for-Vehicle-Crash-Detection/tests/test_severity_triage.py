@@ -147,13 +147,23 @@ class TestSeverityIndex:
     """Tests for severity index calculation."""
     
     def test_insufficient_data(self, severity_triage_system):
-        """Test severity with insufficient history."""
+        """Test severity with insufficient history and low confidence."""
         track_id = 0
-        severity_triage_system.update_track(track_id, (100, 100, 200, 200), 1, "Accident", 0.9)
+        # Use low confidence (<=0.7) so early classification doesn't trigger
+        severity_triage_system.update_track(track_id, (100, 100, 200, 200), 1, "impact", 0.5)
         
         severity_index, category = severity_triage_system.calculate_severity_index(track_id)
         assert category == "Insufficient Data"
         assert severity_index == 0.0
+    
+    def test_high_conf_accident_is_severe_immediately(self, severity_triage_system):
+        """Test that high-confidence Accident is classified as Severe even with 1 frame."""
+        track_id = 0
+        severity_triage_system.update_track(track_id, (100, 100, 200, 200), 1, "Accident", 0.9)
+        
+        severity_index, category = severity_triage_system.calculate_severity_index(track_id)
+        assert category == "Severe"
+        assert severity_index == pytest.approx(0.9, abs=0.01)
     
     def test_monitoring_category(self, severity_triage_system):
         """Test monitoring category for normal movement."""
@@ -218,3 +228,80 @@ class TestReset:
         
         assert len(severity_triage_system.vehicle_tracks) == 0
         assert severity_triage_system.next_track_id == 0
+
+
+class TestEarlyConfidenceClassification:
+    """Tests for confidence-based early classification (no track history needed)."""
+
+    def test_accident_high_conf_immediate_severe(self, severity_triage_system):
+        """High-confidence 'Accident' classified as Severe on first frame."""
+        track_id = 0
+        severity_triage_system.update_track(track_id, (100, 100, 200, 200), 1, "Accident", 0.85)
+        severity_index, category = severity_triage_system.calculate_severity_index(track_id)
+        assert category == "Severe"
+        assert severity_index == pytest.approx(0.85, abs=0.01)
+
+    def test_severe_class_immediate_severe(self, severity_triage_system):
+        """Class name 'severe' with >0.7 conf classified as Severe immediately."""
+        track_id = 0
+        severity_triage_system.update_track(track_id, (100, 100, 200, 200), 1, "severe", 0.75)
+        severity_index, category = severity_triage_system.calculate_severity_index(track_id)
+        assert category == "Severe"
+
+    def test_crash_class_immediate_severe(self, severity_triage_system):
+        """Class name 'crash' with >0.7 conf classified as Severe immediately."""
+        track_id = 0
+        severity_triage_system.update_track(track_id, (100, 100, 200, 200), 1, "crash", 0.80)
+        _, category = severity_triage_system.calculate_severity_index(track_id)
+        assert category == "Severe"
+
+    def test_collision_class_immediate_severe(self, severity_triage_system):
+        """Class name 'collision' with >0.7 conf classified as Severe immediately."""
+        track_id = 0
+        severity_triage_system.update_track(track_id, (100, 100, 200, 200), 1, "collision", 0.72)
+        _, category = severity_triage_system.calculate_severity_index(track_id)
+        assert category == "Severe"
+
+    def test_moderate_class_immediate(self, severity_triage_system):
+        """Class 'moderate' with >0.6 conf classified as Moderate immediately."""
+        track_id = 0
+        severity_triage_system.update_track(track_id, (100, 100, 200, 200), 1, "moderate", 0.65)
+        severity_index, category = severity_triage_system.calculate_severity_index(track_id)
+        assert category == "Moderate"
+        assert severity_index == pytest.approx(0.6, abs=0.01)
+
+    def test_mild_class_immediate(self, severity_triage_system):
+        """Class 'mild' with >0.5 conf classified as Mild immediately."""
+        track_id = 0
+        severity_triage_system.update_track(track_id, (100, 100, 200, 200), 1, "mild", 0.55)
+        severity_index, category = severity_triage_system.calculate_severity_index(track_id)
+        assert category == "Mild"
+        assert severity_index == pytest.approx(0.4, abs=0.01)
+
+    def test_low_conf_accident_not_severe(self, severity_triage_system):
+        """Low-confidence 'Accident' (<=0.7) does NOT get early Severe classification."""
+        track_id = 0
+        severity_triage_system.update_track(track_id, (100, 100, 200, 200), 1, "Accident", 0.65)
+        _, category = severity_triage_system.calculate_severity_index(track_id)
+        # Should be Insufficient Data (only 1 frame, low conf)
+        assert category == "Insufficient Data"
+
+
+class TestTwoFrameMotionAnalysis:
+    """Tests for motion-based severity with 2 frames (was previously 3)."""
+
+    def test_two_frames_not_insufficient(self, severity_triage_system):
+        """Two frames of history should not return 'Insufficient Data' for motion analysis."""
+        track_id = 0
+        # Use 'wreck' class (crash keyword, but not in the early confidence list)
+        severity_triage_system.update_track(track_id, (100, 100, 200, 200), 1, "wreck", 0.5)
+        severity_triage_system.update_track(track_id, (100, 100, 200, 200), 2, "wreck", 0.5)
+        _, category = severity_triage_system.calculate_severity_index(track_id)
+        assert category != "Insufficient Data"
+
+    def test_one_frame_is_insufficient(self, severity_triage_system):
+        """Single frame should still return 'Insufficient Data' for non-confident crash."""
+        track_id = 0
+        severity_triage_system.update_track(track_id, (100, 100, 200, 200), 1, "wreck", 0.5)
+        _, category = severity_triage_system.calculate_severity_index(track_id)
+        assert category == "Insufficient Data"

@@ -5,6 +5,9 @@ import AnalyticsWidget from "./components/AnalyticsWidget";
 import IncidentsView from "./components/IncidentsView";
 import SettingsView from "./components/SettingsView";
 import LiveStatusPanel from "./components/LiveStatusPanel";
+import SeverityDistribution from "./components/SeverityDistribution";
+import IncidentTimeline from "./components/IncidentTimeline";
+import IncidentMap from "./components/IncidentMap";
 
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
 
@@ -16,7 +19,10 @@ function App() {
     "Initializing system..."
   );
   const [aiAccuracy, setAiAccuracy] = useState("--%");
-  const [incidentsToday] = useState(0);
+  const [incidentsToday, setIncidentsToday] = useState(0);
+  const [showBoundingBoxes, setShowBoundingBoxes] = useState(true);
+  const [showLabels, setShowLabels] = useState(true);
+  const [showConfidence, setShowConfidence] = useState(true);
   const liveFeedRef = useRef(null);
   const [streamStatus, setStreamStatus] = useState("Awaiting input");
   const [streaming, setStreaming] = useState(false);
@@ -92,6 +98,18 @@ function App() {
     };
 
     hydrateStatus();
+    // Fetch today's incident count
+    fetch(`${API_URL}/api/v1/crashes`)
+      .then(res => res.ok ? res.json() : Promise.reject())
+      .then(data => {
+        const today = new Date().toDateString();
+        const todayCount = (data.crashes || []).filter(c =>
+          new Date(c.timestamp).toDateString() === today
+        ).length;
+        setIncidentsToday(todayCount);
+      })
+      .catch(() => { });
+
     const id = setInterval(hydrateStatus, 30000);
     return () => clearInterval(id);
   }, []);
@@ -290,7 +308,7 @@ function App() {
             {/* Stat cards — only on dashboard */}
             {activeView === 'dashboard' && (
               <section className="stats-row">
-                <article className="stat-card glass">
+                <article className="stat-card glass stat-card--animate">
                   <div className="stat-card__icon stat-card__icon--blue">🎯</div>
                   <div className="stat-card__content">
                     <div className="stat-card__value">{aiAccuracy}</div>
@@ -298,7 +316,7 @@ function App() {
                   </div>
                 </article>
 
-                <article className="stat-card glass">
+                <article className="stat-card glass stat-card--animate" style={{ animationDelay: '0.1s' }}>
                   <div className="stat-card__icon stat-card__icon--green">📡</div>
                   <div className="stat-card__content">
                     <div className="stat-card__value">1</div>
@@ -306,7 +324,7 @@ function App() {
                   </div>
                 </article>
 
-                <article className="stat-card glass">
+                <article className="stat-card glass stat-card--animate" style={{ animationDelay: '0.2s' }}>
                   <div className="stat-card__icon stat-card__icon--amber">⚠</div>
                   <div className="stat-card__content">
                     <div className="stat-card__value">{incidentsToday}</div>
@@ -314,7 +332,7 @@ function App() {
                   </div>
                 </article>
 
-                <article className="stat-card glass">
+                <article className="stat-card glass stat-card--animate" style={{ animationDelay: '0.3s' }}>
                   <div className="stat-card__icon stat-card__icon--purple">🧠</div>
                   <div className="stat-card__content">
                     <div className="stat-card__value">Hybrid</div>
@@ -327,6 +345,15 @@ function App() {
             {/* Live Status Panel - real-time metrics */}
             {activeView === 'dashboard' && (
               <LiveStatusPanel isStreaming={streaming} apiUrl={API_URL} />
+            )}
+
+            {/* Enhanced Analytics Row — new chart widgets */}
+            {activeView === 'dashboard' && (
+              <section className="analytics-chart-row">
+                <IncidentMap />
+                <SeverityDistribution />
+                <IncidentTimeline />
+              </section>
             )}
 
             {/* Main detection area */}
@@ -425,6 +452,26 @@ function App() {
                     value={conf}
                     onChange={(e) => setConf(parseFloat(e.target.value))}
                   />
+                </div>
+
+                {/* Overlay Controls */}
+                <div className="overlay-controls">
+                  <h4 className="overlay-controls__title">⚙ Display Overlays</h4>
+                  <label className="overlay-toggle">
+                    <span className="overlay-toggle__label">👁 Bounding Boxes</span>
+                    <input type="checkbox" checked={showBoundingBoxes} onChange={(e) => setShowBoundingBoxes(e.target.checked)} />
+                    <span className="overlay-toggle__slider"></span>
+                  </label>
+                  <label className="overlay-toggle">
+                    <span className="overlay-toggle__label">🏷 Labels</span>
+                    <input type="checkbox" checked={showLabels} onChange={(e) => setShowLabels(e.target.checked)} />
+                    <span className="overlay-toggle__slider"></span>
+                  </label>
+                  <label className="overlay-toggle">
+                    <span className="overlay-toggle__label">📊 Confidence</span>
+                    <input type="checkbox" checked={showConfidence} onChange={(e) => setShowConfidence(e.target.checked)} />
+                    <span className="overlay-toggle__slider"></span>
+                  </label>
                 </div>
 
                 {/* Action buttons */}

@@ -1,0 +1,222 @@
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  /* CrashGuard AI Brand Colors */
+  --brand-cyan: #22d3ee;
+  --brand-blue: #0ea5e9;
+  --brand-indigo: #6366f1;
+  --brand-purple: #a855f7;
+  
+  /* Status Colors */
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  
+  /* Background Layers */
+  --bg-base: #030712;
+  --bg-surface: #0a0f1e;
+  --bg-elevated: #111827;
+  --bg-card: rgba(17, 24, 39, 0.7);
+  
+  /* Text Colors */
+  --text-1: #f8fafc;
+  --text-2: #94a3b8;
+  --text-3: #475569;
+  
+  /* Border & Glass Effects */
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border-muted: rgba(255, 255, 255, 0.1);
+  
+  /* Shadcn UI Compatibility */
+  --font-size: 16px;
+  --background: var(--bg-base);
+  --foreground: var(--text-1);
+  --card: var(--bg-card);
+  --card-foreground: var(--text-1);
+  --popover: var(--bg-elevated);
+  --popover-foreground: var(--text-1);
+  --primary: var(--brand-cyan);
+  --primary-foreground: var(--bg-base);
+  --secondary: var(--bg-elevated);
+  --secondary-foreground: var(--text-1);
+  --muted: var(--bg-surface);
+  --muted-foreground: var(--text-2);
+  --accent: var(--brand-indigo);
+  --accent-foreground: var(--text-1);
+  --destructive: var(--danger);
+  --destructive-foreground: var(--text-1);
+  --border: var(--border-subtle);
+  --input: var(--bg-elevated);
+  --input-background: var(--bg-elevated);
+  --ring: var(--brand-cyan);
+  --radius: 0.75rem;
+  --font-weight-medium: 500;
+  --font-weight-normal: 400;
+}
+
+@theme inline {
+  --color-brand-cyan: var(--brand-cyan);
+  --color-brand-blue: var(--brand-blue);
+  --color-brand-indigo: var(--brand-indigo);
+  --color-brand-purple: var(--brand-purple);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-bg-base: var(--bg-base);
+  --color-bg-surface: var(--bg-surface);
+  --color-bg-elevated: var(--bg-elevated);
+  --color-bg-card: var(--bg-card);
+  --color-text-1: var(--text-1);
+  --color-text-2: var(--text-2);
+  --color-text-3: var(--text-3);
+  --color-border-subtle: var(--border-subtle);
+  --color-border-muted: var(--border-muted);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-input-background: var(--input-background);
+  --color-ring: var(--ring);
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.25rem;
+  --radius-pill: 999px;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-bg-base text-text-1;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: radial-gradient(ellipse at top left, rgba(34, 211, 238, 0.15) 0%, transparent 50%),
+                radial-gradient(ellipse at bottom right, rgba(99, 102, 241, 0.15) 0%, transparent 50%),
+                var(--bg-base);
+    background-attachment: fixed;
+  }
+
+  html {
+    font-size: var(--font-size);
+  }
+
+  h1 {
+    font-size: 1.875rem;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+
+  h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    line-height: 1.3;
+  }
+
+  h3 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    line-height: 1.4;
+  }
+
+  h4 {
+    font-size: 1rem;
+    font-weight: 600;
+    line-height: 1.5;
+  }
+
+  label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    line-height: 1.5;
+  }
+
+  button {
+    font-size: 0.875rem;
+    font-weight: 500;
+    line-height: 1.5;
+  }
+
+  input {
+    font-size: 0.875rem;
+    font-weight: 400;
+    line-height: 1.5;
+  }
+}
+
+/* Glass Effect Utility */
+.glass {
+  background: var(--bg-card);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--border-subtle);
+}
+
+/* Glow Effects */
+.glow-cyan {
+  box-shadow: 0 0 30px rgba(34, 211, 238, 0.4);
+}
+
+.glow-cyan-sm {
+  box-shadow: 0 0 15px rgba(34, 211, 238, 0.3);
+}
+
+.glow-danger {
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.4);
+}
+
+/* Pulse Animation for LIVE Badge */
+@keyframes pulse-glow {
+  0%, 100% {
+    opacity: 1;
+    box-shadow: 0 0 10px rgba(239, 68, 68, 0.6);
+  }
+  50% {
+    opacity: 0.8;
+    box-shadow: 0 0 20px rgba(239, 68, 68, 0.8);
+  }
+}
+
+.pulse-live {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* Scanline Overlay for Video */
+.scanlines {
+  position: relative;
+}
+
+.scanlines::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(34, 211, 238, 0.03) 0px,
+    rgba(34, 211, 238, 0.03) 1px,
+    transparent 1px,
+    transparent 2px
+  );
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Monospace Font for Technical Elements */
+.font-mono {
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+}

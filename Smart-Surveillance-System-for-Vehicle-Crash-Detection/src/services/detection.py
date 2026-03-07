@@ -395,6 +395,12 @@ class DetectionService:
         """
         self._stop_event.clear()
         
+        # Reset state for new stream to avoid stale data from previous streams
+        self.frame_counter = 0
+        self.triage_system.reset()
+        self._hybrid_crash_sustained = 0
+        logger.info("🔄 Triage system and frame counter reset for new stream")
+        
         # Check if it's a YouTube URL - download for better performance
         video_path = source_url
         if 'youtube.com' in source_url or 'youtu.be' in source_url:
@@ -603,13 +609,18 @@ class DetectionService:
                     # Save ALL non-Monitoring crash events to database
                     self._save_crash_to_db(sev_result)
                     
-                    # Trigger alert (Telegram) for Severe and Moderate
-                    if sev_result.severity_category in ("Severe", "Moderate"):
+                    # Trigger alert (Telegram) for configured severity levels
+                    if sev_result.severity_category in self.settings.alert_severity_levels:
                         severity_alert_triggered = True
                         if self._can_send_alert():
                             self._trigger_alert(frame, sev_result)
                         else:
-                            logger.debug("Alert cooldown active, skipping")
+                            logger.info(f"⏳ Alert cooldown active. Skipping alert for {sev_result.severity_category} crash.")
+                    elif sev_result.severity_category == "Insufficient Data":
+                        # Log only — do NOT auto-promote to Severe (causes false positives)
+                        logger.info(f"ℹ️ Insufficient temporal data for triage (conf={sev_result.confidence:.2f}). Skipping alert — waiting for more frames.")
+                    else:
+                        logger.info(f"ℹ️ Alert skipped: Severity '{sev_result.severity_category}' is not in configured levels {self.settings.alert_severity_levels}.")
         
         # Hybrid model crash detection (catches bike-to-car and other crashes)
         if self.hybrid_classifier is not None:
@@ -621,10 +632,10 @@ class DetectionService:
                     logger.info(f"🔮 Hybrid classifier: crash_prob={self._hybrid_crash_prob:.3f}, "
                                 f"sustained={self._hybrid_crash_sustained}")
                 
-                if self._hybrid_crash_prob > 0.55:
+                if self._hybrid_crash_prob > 0.70:
                     self._hybrid_crash_sustained += 1
-                    # Require 3+ consecutive high-prob frames
-                    if self._hybrid_crash_sustained >= 3 and not severity_alert_triggered:
+                    # Require 8+ consecutive high-prob frames (~0.27s at 30fps)
+                    if self._hybrid_crash_sustained >= 8 and not severity_alert_triggered:
                         if self._can_send_alert():
                             logger.info(f"Hybrid crash alert: prob={self._hybrid_crash_prob:.2f}")
                             hybrid_sev = SeverityResult(

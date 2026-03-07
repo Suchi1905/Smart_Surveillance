@@ -210,3 +210,69 @@
     display: flex;
     justify-content: flex-end;
 }
+
+/* Privacy Notice */
+.settings-view__privacy-notice {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 18px 20px;
+    border-radius: var(--r-lg);
+    border: 1px solid rgba(34, 211, 238, 0.15);
+    background: rgba(34, 211, 238, 0.03);
+    margin-top: 20px;
+}
+
+.settings-view__privacy-icon {
+    font-size: 1.5rem;
+    flex-shrink: 0;
+}
+
+.settings-view__privacy-title {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--text-1);
+    margin: 0 0 4px 0;
+}
+
+.settings-view__privacy-text {
+    font-size: 0.75rem;
+    color: var(--text-3);
+    line-height: 1.5;
+    margin: 0;
+}
+
+/* Telegram Test Button */
+.settings-test-btn {
+    width: 100%;
+    margin-bottom: 4px;
+}
+
+/* Save Spinner */
+.settings-save-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.settings-save-spinner {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Cyan system info value */
+.system-info__value--cyan {
+    color: #22d3ee;
+    font-family: 'JetBrains Mono', monospace;
+}

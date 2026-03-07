@@ -187,6 +187,24 @@
 
 /* Telegram and Badge Styles */
 
+.alerts-panel__controls {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.alerts-panel__sound-btn {
+    font-size: 1.1rem !important;
+}
+
+.alerts-panel__sound-btn--muted {
+    opacity: 0.4;
+}
+
+.alert-item--animate {
+    animation: slideIn 0.3s ease-out both;
+}
+
 .alert-item__meta {
     display: flex;
     align-items: center;
@@ -197,21 +215,30 @@
 .alert-item__telegram {
     font-size: 10px;
     font-weight: 600;
-    color: var(--primary-cyan);
-    background: rgba(34, 211, 238, 0.1);
     padding: 2px 6px;
-    border-radius: var(--radius-sm);
+    border-radius: 4px;
     display: flex;
     align-items: center;
     gap: 4px;
-    border: 1px solid rgba(34, 211, 238, 0.2);
+}
+
+.alert-item__telegram--sent {
+    color: #10b981;
+    background: rgba(16, 185, 129, 0.1);
+    border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.alert-item__telegram--pending {
+    color: #94a3b8;
+    background: rgba(148, 163, 184, 0.1);
+    border: 1px solid rgba(148, 163, 184, 0.15);
 }
 
 .alert-item__track {
     font-size: 11px;
-    color: var(--text-muted);
+    color: rgba(255, 255, 255, 0.4);
     font-family: monospace;
     background: rgba(255, 255, 255, 0.05);
     padding: 2px 6px;
-    border-radius: var(--radius-sm);
+    border-radius: 4px;
 }

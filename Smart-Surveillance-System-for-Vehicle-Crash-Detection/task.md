@@ -12,6 +12,11 @@
   - [x] Add adaptive thresholds based on traffic density
   - [x] Modify `behavior.py` threshold constants
   - [x] Modify `collision.py` TTC/distance constants
+  - [x] **Debug Telegram Alerts**
+    - [x] Verify API connectivity (`scripts/test_telegram_simple.py`)
+    - [x] Verify Service Logic (`scripts/test_telegram_service.py`)
+    - [x] Add verbose logging for skipped alerts
+    - [x] Make alert severity configurable (`ALERT_SEVERITY_LEVELS`)
   - [ ] Add vehicle type classification support
 
 - [/] **Risk Scoring System**
@@ -62,18 +67,37 @@
 
 
 ## Phase 5: Testing
-- [ ] **Integration Testing**
-  - [ ] Test end-to-end system
-  - [ ] Test with real-world data
-  - [ ] Test with different camera angles
-  - [ ] Test with different lighting conditions
-  - [ ] Test with different weather conditions
-  - [ ] Test with different vehicle types
-  - [ ] Test with different vehicle speeds
-  - [ ] Test with different vehicle sizes
-  - [ ] Test with different vehicle colors
-  - [ ] Test with different vehicle orientations
-  - [ ] Test with different vehicle positions
-  - [ ] Test with different vehicle movements
-  - [ ] Test with different vehicle trajectories
-  - [ ] Test with night time conditions
+- [/] **Integration Testing**
+  - [/] Test Infrastructure
+    - [x] Update `conftest.py` with comprehensive fixtures
+    - [x] Add mock DetectionService, Telegram, frame sequences, timer
+  - [/] End-to-End Pipeline Tests (`test_e2e_pipeline.py`)
+    - [x] Pipeline initialization tests
+    - [x] Frame processing tests
+    - [x] Severity triage flow tests (early confidence classification)
+    - [x] Alert triggering tests (cooldown, fallback)
+    - [x] Triage reset on new stream
+  - [/] Alert & Telegram Integration (`test_alert_integration.py`)
+    - [x] Telegram service init & disabled handling
+    - [x] Alert dispatch with mocked HTTP
+    - [x] Alert callback invocation
+    - [x] send_telegram_alert wrapper tests
+  - [/] Detection Service Unit Tests (`test_detection_service.py`)
+    - [x] Service initialization & state
+    - [x] IoU calculation
+    - [x] Alert cooldown timing
+    - [x] Frame encoding & error frames
+    - [x] Severity levels configuration
+  - [/] Performance Benchmarks (`test_performance.py`)
+    - [x] Frame processing latency (<500ms)
+    - [x] Triage throughput (>100/s)
+    - [x] Encoding speed (<10ms)
+    - [x] Severity calculation speed
+  - [/] Updated Severity Triage Tests (`test_severity_triage.py`)
+    - [x] Early confidence classification (7 tests)
+    - [x] Two-frame motion analysis (2 tests)
+  - [/] Scenario Test Runner (`tests/scenarios/run_scenario.py`)
+    - [x] CLI script for real-world video testing
+    - [ ] Run scenario on crash video
+    - [ ] Run scenario on normal traffic video
+  - [x] Run full test suite and verify all pass

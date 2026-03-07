@@ -218,7 +218,22 @@ class SeverityTriageSystem:
         """
         track_history = list(self.vehicle_tracks[track_id])
         
-        if len(track_history) < 3:
+        # Get the class name and confidence from the most recent detection
+        latest_detection = track_history[-1]
+        class_name = latest_detection.get('class', '').lower()
+        confidence = latest_detection.get('confidence', 0.0)
+        
+        # === Early confidence-based classification (no track history needed) ===
+        # Require HIGH confidence to classify immediately (reduces false positives)
+        if class_name in ['severe', 'accident', 'crash', 'collision'] and confidence > 0.85:
+            return float(confidence), "Severe"
+        elif class_name == 'moderate' and confidence > 0.75:
+            return 0.6, "Moderate"
+        elif class_name == 'mild' and confidence > 0.65:
+            return 0.4, "Mild"
+        
+        # For motion-based analysis, need at least 2 frames (was 3)
+        if len(track_history) < 2:
             return 0.0, "Insufficient Data"
         
         # Calculate velocity over last few frames
@@ -228,7 +243,7 @@ class SeverityTriageSystem:
                 vel = self.calculate_velocity(track_history[i-1:i+1])
                 velocities.append(vel)
         
-        if len(velocities) < 2:
+        if len(velocities) < 1:
             return 0.0, "Insufficient Data"
         
         # Check for sudden velocity drop (indicating crash)
@@ -245,11 +260,6 @@ class SeverityTriageSystem:
         
         avg_iou = np.mean(iou_values) if iou_values else 0.0
         
-        # Get the class name and confidence from the most recent detection
-        latest_detection = track_history[-1]
-        class_name = latest_detection.get('class', '').lower()
-        confidence = latest_detection.get('confidence', 0.0)
-        
         # Severity Index: High IoU + Sudden velocity drop = Severe crash
         # BUT require minimum prior velocity (object must have been moving first)
         severity_index = 0.0
@@ -262,19 +272,9 @@ class SeverityTriageSystem:
         was_moving = avg_velocity > min_prior_velocity
         is_now_slow = current_velocity < min_prior_velocity
         
-        # === Method 1: Confidence-based severity for crash classes ===
-        # If the model detected 'severe' or 'accident' with high confidence, trust it
-        if class_name in ['severe', 'accident', 'crash', 'collision'] and confidence > 0.7:
-            severity_index = confidence
-            severity_category = "Severe"
-        elif class_name == 'moderate' and confidence > 0.6:
-            severity_index = 0.6
-            severity_category = "Moderate"
-        elif class_name == 'mild' and confidence > 0.5:
-            severity_index = 0.4
-            severity_category = "Mild"
-        # === Method 2: Motion-based severity analysis (fallback) ===
-        elif was_moving and is_now_slow and avg_iou > self.iou_threshold and velocity_drop_ratio > 0.5:
+        # === Motion-based severity analysis ===
+        # (Confidence-based classification was already handled above as early return)
+        if was_moving and is_now_slow and avg_iou > self.iou_threshold and velocity_drop_ratio > 0.5:
             severity_index = min(1.0, avg_iou * velocity_drop_ratio)
             severity_category = "Severe"
         elif was_moving and avg_iou > 0.2 and velocity_drop_ratio > 0.3:

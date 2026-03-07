@@ -1202,6 +1202,287 @@ input[type="range"]::-moz-range-thumb {
 }
 
 /* ============================================
+   Analytics Chart Row (New Figma Widgets)
+   ============================================ */
+.analytics-chart-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+/* ============================================
+   Overlay Toggle Controls
+   ============================================ */
+.overlay-controls {
+  border-top: 1px solid var(--border-1);
+  padding-top: 12px;
+  margin-top: 4px;
+}
+
+.overlay-controls__title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-2);
+  margin-bottom: 8px;
+}
+
+.overlay-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 0;
+  cursor: pointer;
+  position: relative;
+}
+
+.overlay-toggle__label {
+  font-size: 0.7rem;
+  color: var(--text-2);
+}
+
+.overlay-toggle input[type="checkbox"] {
+  position: relative;
+  appearance: none;
+  width: 36px;
+  height: 20px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-2);
+  border-radius: var(--r-full);
+  cursor: pointer;
+  transition: background 0.25s, border-color 0.25s;
+}
+
+.overlay-toggle input[type="checkbox"]::after {
+  content: '';
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--text-3);
+  top: 2px;
+  left: 2px;
+  transition: transform 0.25s, background 0.25s;
+}
+
+.overlay-toggle input[type="checkbox"]:checked {
+  background: rgba(34, 211, 238, 0.2);
+  border-color: rgba(34, 211, 238, 0.4);
+}
+
+.overlay-toggle input[type="checkbox"]:checked::after {
+  transform: translateX(16px);
+  background: var(--brand-cyan);
+}
+
+/* ============================================
+   Stat Card Entrance Animation
+   ============================================ */
+.stat-card--animate {
+  animation: stat-card-entrance 0.5s ease-out both;
+}
+
+@keyframes stat-card-entrance {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ============================================
+   Toast Notification
+   ============================================ */
+.toast-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.toast {
+  pointer-events: auto;
+  padding: 12px 20px;
+  border-radius: var(--r-md);
+  background: var(--bg-card);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  color: var(--text-1);
+  font-size: 0.8rem;
+  max-width: 360px;
+  animation: toast-slide-in 0.3s ease-out;
+  box-shadow: var(--shadow-lg);
+}
+
+.toast--severe {
+  border-color: rgba(239, 68, 68, 0.4);
+  background: rgba(239, 68, 68, 0.15);
+}
+
+.toast--moderate {
+  border-color: rgba(245, 158, 11, 0.4);
+  background: rgba(245, 158, 11, 0.15);
+}
+
+.toast__title {
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.toast__desc {
+  font-size: 0.7rem;
+  color: var(--text-2);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+@keyframes toast-slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(60px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* ============================================
+   Incident Detail Modal
+   ============================================ */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  z-index: 9000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: modal-fade-in 0.2s ease-out;
+}
+
+.modal-content {
+  width: 90%;
+  max-width: 640px;
+  max-height: 85vh;
+  overflow-y: auto;
+  background: var(--bg-surface);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-xl);
+  padding: 28px;
+  animation: modal-scale-in 0.25s ease-out;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.modal-header__title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-1);
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  color: var(--text-3);
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: var(--r-sm);
+  transition: color 0.2s, background 0.2s;
+}
+
+.modal-close:hover {
+  color: var(--text-1);
+  background: var(--bg-elevated);
+}
+
+.modal-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.modal-field {
+  background: rgba(17, 24, 39, 0.5);
+  border: 1px solid var(--border-1);
+  border-radius: var(--r-md);
+  padding: 12px;
+}
+
+.modal-field__label {
+  font-size: 0.65rem;
+  color: var(--text-3);
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.modal-field__value {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-1);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.modal-field__value--cyan {
+  color: var(--brand-cyan);
+}
+
+.modal-field__value--warning {
+  color: var(--warning);
+}
+
+.modal-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.modal-actions .btn {
+  flex: 1;
+}
+
+@keyframes modal-fade-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes modal-scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* ============================================
    Responsive
    ============================================ */
 @media (max-width: 1200px) {
@@ -1229,6 +1510,10 @@ input[type="range"]::-moz-range-thumb {
   }
 
   .dashboard-bottom {
+    grid-template-columns: 1fr;
+  }
+
+  .analytics-chart-row {
     grid-template-columns: 1fr;
   }
 }

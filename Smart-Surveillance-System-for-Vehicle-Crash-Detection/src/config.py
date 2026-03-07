@@ -41,12 +41,14 @@ class Settings:
         self.database_url: str = os.getenv("DATABASE_URL", "sqlite:///./crash_events.db")
         
         # Detection Settings
-        self.confidence_threshold: float = float(os.getenv("CONFIDENCE_THRESHOLD", "0.6"))
+        self.confidence_threshold: float = float(os.getenv("CONFIDENCE_THRESHOLD", "0.75"))
         self.severity_buffer_size: int = int(os.getenv("SEVERITY_BUFFER_SIZE", "10"))
         self.severity_iou_threshold: float = float(os.getenv("SEVERITY_IOU_THRESHOLD", "0.3"))
         
         # Alert Settings
-        self.alert_cooldown_seconds: int = int(os.getenv("ALERT_COOLDOWN_SECONDS", "10"))
+        self.alert_cooldown_seconds: int = int(os.getenv("ALERT_COOLDOWN_SECONDS", "30"))
+        # Alert Severity Levels (comma-separated list: Severe,Moderate,Mild)
+        self.alert_severity_levels: list = os.getenv("ALERT_SEVERITY_LEVELS", "Severe").split(",")
         
         # Traffic Profile Settings (us, indian, european)
         self.traffic_profile: str = os.getenv("TRAFFIC_PROFILE", "indian")
